@@ -166,18 +166,6 @@ const Footer = () => {
                 </a>
               ))}
             </div>
-
-            {/* Office Hours */}
-            <div className="p-4 bg-gradient-to-br from-orange-500/5 to-orange-600/5 rounded-xl border border-orange-500/10">
-              <div className="flex items-start gap-3">
-                <Clock className="w-5 h-5 text-orange-400 mt-1 flex-shrink-0" />
-                <div>
-                  <div className="text-sm font-bold text-white mb-1">Office Hours</div>
-                  <div className="text-xs text-gray-400">Mon - Sat: 9:00 AM - 6:00 PM</div>
-                  <div className="text-xs text-gray-400">Sunday: Closed</div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -185,7 +173,7 @@ const Footer = () => {
         <div className="border-t border-gray-700/50 pt-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="text-gray-400 text-sm text-center md:text-left">
-              © 2025 Defense Academy. All rights reserved. Built with{' '}
+              © 2025 Mentors Forum. All rights reserved. Built with{' '}
               <Heart className="w-4 h-4 inline text-red-500" /> for our nation's defenders.
             </div>
             

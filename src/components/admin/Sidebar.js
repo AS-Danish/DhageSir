@@ -38,7 +38,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, collapsed, setCol
     { 
       name: 'Books', 
       icon: BookOpen, 
-      href: '/admin/books',
+      href: '/admin/books-management',
       color: 'text-green-600'
     },
     { 

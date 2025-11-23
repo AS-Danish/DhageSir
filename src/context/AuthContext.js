@@ -3,7 +3,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
-import { auth } from '@/firebase/firebaseConfig';
+import { auth } from '../firebase/firebaseConfig';
 
 const AuthContext = createContext({});
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { FileText, Calendar, ArrowRight, Clock, Library, TrendingUp } from 'lucide-react';
+import { theme, getButton } from '../app/theme/theme';
 
 const ArticlesSection = () => {
   const articles = [
@@ -78,29 +79,29 @@ const ArticlesSection = () => {
   ];
 
   return (
-    <section className="py-16 md:py-20 bg-gradient-to-br from-gray-50 via-white to-purple-50 relative overflow-hidden">
+    <section className={`py-16 md:py-20 bg-gradient-to-br ${theme.gradients.light} relative overflow-hidden`}>
       {/* Background Decorative Elements */}
-      <div className="absolute top-10 right-0 w-96 h-96 bg-blue-50 rounded-full filter blur-3xl opacity-40"></div>
-      <div className="absolute bottom-20 left-0 w-96 h-96 bg-purple-50 rounded-full filter blur-3xl opacity-40"></div>
+      <div className={`absolute top-10 right-0 w-96 h-96 ${theme.backgrounds.primary} rounded-full filter blur-3xl opacity-40`}></div>
+      <div className={`absolute bottom-20 left-0 w-96 h-96 ${theme.backgrounds.primary} rounded-full filter blur-3xl opacity-40`}></div>
       
       <div className="container mx-auto px-4 max-w-7xl relative z-10">
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-12 gap-6">
           <div>
-            <div className="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full text-sm font-semibold mb-4 shadow-lg">
+            <div className={`inline-flex items-center gap-2 px-5 py-2 ${theme.badges.primary} rounded-full text-sm font-semibold mb-4 ${theme.shadows.lg}`}>
               <FileText className="w-4 h-4" />
               Latest Articles
             </div>
-            <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-3">
-              Knowledge <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Hub</span>
+            <h2 className={`text-4xl md:text-5xl font-black ${theme.text.primary} mb-3`}>
+              Knowledge <span className={`bg-gradient-to-r ${theme.gradients.primary} bg-clip-text text-transparent`}>Hub</span>
             </h2>
-            <p className="text-gray-600 text-lg max-w-2xl">
+            <p className={`${theme.text.secondary} text-lg max-w-2xl`}>
               Expert insights, strategies, and guidance on defense careers, exam preparation, and personal development
             </p>
           </div>
           
           {/* View All Button - Desktop */}
-          <button className="hidden md:inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-bold hover:shadow-2xl hover:scale-105 transition-all shadow-xl group">
+          <button className={`hidden md:inline-flex items-center gap-2 ${getButton('primary')} group`}>
             <Library className="w-5 h-5" />
             View All Articles
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -112,7 +113,7 @@ const ArticlesSection = () => {
           {articles.map((article) => (
             <div key={article.id} className="group">
               {/* Card Container */}
-              <div className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+              <div className={`${theme.cards.elevated} rounded-2xl overflow-hidden transition-all duration-300 h-full flex flex-col`}>
                 {/* Article Image */}
                 <div className="relative overflow-hidden h-48">
                   <img 
@@ -121,25 +122,25 @@ const ArticlesSection = () => {
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
                   {/* Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent"></div>
+                  <div className={`absolute inset-0 bg-gradient-to-t ${theme.gradients.overlay}`}></div>
                   
                   {/* Category Badge */}
                   <div className="absolute top-3 left-3">
-                    <span className="px-3 py-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-bold rounded-full shadow-lg">
+                    <span className={`px-3 py-1 ${theme.badges.primary} text-xs font-bold rounded-full ${theme.shadows.lg}`}>
                       {article.category}
                     </span>
                   </div>
 
                   {/* Trending Icon */}
-                  <div className="absolute top-3 right-3 w-8 h-8 bg-white/95 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg">
-                    <TrendingUp className="w-4 h-4 text-purple-600" />
+                  <div className={`absolute top-3 right-3 w-8 h-8 ${theme.backgrounds.white} backdrop-blur-sm rounded-full flex items-center justify-center ${theme.shadows.lg}`}>
+                    <TrendingUp className={`w-4 h-4 ${theme.text.brand}`} />
                   </div>
                 </div>
 
                 {/* Article Content */}
                 <div className="p-5 flex-1 flex flex-col">
                   {/* Date & Read Time */}
-                  <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
+                  <div className={`flex items-center gap-4 text-xs ${theme.text.light} mb-3`}>
                     <div className="flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
                       <span>{article.date}</span>
@@ -151,24 +152,24 @@ const ArticlesSection = () => {
                   </div>
 
                   {/* Title */}
-                  <h3 className="text-lg font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-purple-600 transition-colors">
+                  <h3 className={`text-lg font-bold ${theme.text.primary} mb-3 line-clamp-2 group-hover:${theme.text.brand} transition-colors`}>
                     {article.title}
                   </h3>
 
                   {/* Description */}
-                  <p className="text-gray-600 text-sm leading-relaxed mb-4 line-clamp-3 flex-1">
+                  <p className={`${theme.text.secondary} text-sm leading-relaxed mb-4 line-clamp-3 flex-1`}>
                     {article.description}
                   </p>
                   
                   {/* Read Full Article Button */}
-                  <button className="inline-flex items-center gap-2 text-purple-600 font-bold text-sm group-hover:gap-3 transition-all mt-auto">
+                  <button className={`inline-flex items-center gap-2 ${theme.text.brand} font-bold text-sm group-hover:gap-3 transition-all mt-auto`}>
                     Read Full Article
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </button>
                 </div>
 
                 {/* Decorative Bottom Accent */}
-                <div className="h-1 bg-gradient-to-r from-purple-600 to-blue-600 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></div>
+                <div className={`h-1 bg-gradient-to-r ${theme.gradients.primary} transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left`}></div>
               </div>
             </div>
           ))}
@@ -176,7 +177,7 @@ const ArticlesSection = () => {
 
         {/* View All Button - Mobile */}
         <div className="flex justify-center md:hidden">
-          <button className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-bold hover:shadow-2xl hover:scale-105 transition-all shadow-xl group w-full md:w-auto justify-center">
+          <button className={`inline-flex items-center gap-2 ${getButton('primary')} group w-full md:w-auto justify-center`}>
             <Library className="w-5 h-5" />
             View All Articles
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />

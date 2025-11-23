@@ -52,58 +52,44 @@ const ContactSection = () => {
       link: "mailto:contact@colonel.com",
       gradient: theme.iconGradients.email
     },
-    {
-      icon: MapPin,
-      label: "Office Location",
-      value: "New Delhi, India 110001",
-      link: "#",
-      gradient: theme.iconGradients.location
-    },
-    {
-      icon: Clock,
-      label: "Working Hours",
-      value: "Mon - Sat: 9:00 AM - 6:00 PM",
-      link: "#",
-      gradient: theme.iconGradients.time
-    }
   ];
 
   const socialLinks = [
     {
       name: "Instagram",
-      icon: "📷",
       url: "https://instagram.com/yourprofile",
-      color: "from-pink-600 to-purple-600",
+      bgColor: "bg-gradient-to-br from-pink-500 to-purple-600",
+      hoverColor: "hover:from-pink-600 hover:to-purple-700",
     },
     {
       name: "Facebook",
-      icon: "👤",
       url: "https://facebook.com/yourpage",
-      color: "from-blue-600 to-blue-700",
+      bgColor: "bg-gradient-to-br from-blue-600 to-blue-700",
+      hoverColor: "hover:from-blue-700 hover:to-blue-800",
     },
     {
       name: "Twitter",
-      icon: "🐦",
       url: "https://twitter.com/yourhandle",
-      color: "from-sky-500 to-blue-600",
+      bgColor: "bg-gradient-to-br from-sky-400 to-blue-600",
+      hoverColor: "hover:from-sky-500 hover:to-blue-700",
     },
     {
       name: "WhatsApp",
-      icon: "💬",
       url: "https://wa.me/919876543210",
-      color: "from-green-500 to-green-600",
+      bgColor: "bg-gradient-to-br from-green-500 to-emerald-600",
+      hoverColor: "hover:from-green-600 hover:to-emerald-700",
     },
     {
-      name: "YouTube 1",
-      icon: "▶️",
+      name: "YouTube",
       url: "https://youtube.com/@channel1",
-      color: "from-red-600 to-red-700",
+      bgColor: "bg-gradient-to-br from-red-600 to-red-700",
+      hoverColor: "hover:from-red-700 hover:to-red-800",
     },
     {
-      name: "YouTube 2",
-      icon: "🎬",
-      url: "https://youtube.com/@channel2",
-      color: "from-orange-500 to-red-600",
+      name: "LinkedIn",
+      url: "https://linkedin.com/company/yourcompany",
+      bgColor: "bg-gradient-to-br from-blue-700 to-blue-800",
+      hoverColor: "hover:from-blue-800 hover:to-blue-900",
     }
   ];
 
@@ -224,69 +210,43 @@ const ContactSection = () => {
         </div>
 
         {/* Social Media Section */}
-        <div className="bg-white rounded-3xl p-10 md:p-12 shadow-2xl relative overflow-hidden border-2 border-gray-100">
-          {/* Decorative Background - Subtle */}
-          <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-bl from-orange-50 to-transparent rounded-full opacity-50"></div>
-          <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-amber-50 to-transparent rounded-full opacity-50"></div>
-          
-          <div className="relative z-10">
-            <div className="text-center mb-10">
-              <h3 className="text-3xl md:text-4xl font-black text-gray-900 mb-3">Connect With Us</h3>
-              <p className="text-gray-600 text-lg">Follow us on social media for daily updates, tips, and inspiration</p>
-            </div>
+        <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-8 md:p-10 border border-gray-200">
+          <div className="text-center mb-8">
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">Connect With Us</h3>
+            <p className="text-gray-600">Follow us on social media</p>
+          </div>
 
-            {/* Social Links Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-5">
-              {socialLinks.map((social, index) => (
-                <a
-                  key={index}
-                  href={social.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`group relative bg-gradient-to-br ${social.color} rounded-2xl p-8 flex flex-col items-center justify-center gap-3 shadow-lg hover:shadow-2xl hover:scale-110 transition-all`}
-                >
-                  <div className="text-5xl transform group-hover:scale-125 transition-transform">{social.icon}</div>
-                  <span className="text-sm font-bold text-white text-center">{social.name}</span>
-                  
-                  {/* Shine Effect */}
-                  <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>
-                </a>
-              ))}
-            </div>
-
-            {/* Quick Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-5 mt-12 pt-10 border-t-2 border-gray-100">
+          {/* Social Links Grid */}
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            {socialLinks.map((social, index) => (
               <a
-                href="https://wa.me/919876543210"
+                key={index}
+                href={social.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl font-bold shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
+                className={`${social.bgColor} ${social.hoverColor} rounded-xl px-6 py-3 text-white font-semibold shadow-md hover:shadow-lg transition-all`}
               >
-                💬 Chat on WhatsApp
+                {social.name}
               </a>
-              <a
-                href="tel:+919876543210"
-                className={`inline-flex items-center gap-3 px-10 py-5 bg-gradient-to-r ${theme.gradients.primary} hover:from-orange-600 hover:to-orange-700 text-white rounded-xl font-bold shadow-xl shadow-orange-500/20 hover:shadow-2xl hover:scale-105 transition-all`}
-              >
-                📞 Call Now
-              </a>
-            </div>
+            ))}
           </div>
-        </div>
 
-        {/* Bottom Trust Bar */}
-        <div className="mt-12 flex flex-wrap items-center justify-center gap-8 text-center">
-          <div className="flex items-center gap-2 text-gray-600">
-            <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
-            <span className="font-semibold">Available Now</span>
-          </div>
-          <div className="flex items-center gap-2 text-gray-600">
-            <span className="text-xl">⚡</span>
-            <span className="font-semibold">Quick Response Time</span>
-          </div>
-          <div className="flex items-center gap-2 text-gray-600">
-            <span className="text-xl">✓</span>
-            <span className="font-semibold">Trusted by 5000+ Clients</span>
+          {/* Quick Action Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8 pt-8 border-t border-gray-200">
+            <a
+              href="https://wa.me/919876543210"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all"
+            >
+              Chat on WhatsApp
+            </a>
+            <a
+              href="tel:+919876543210"
+              className={`inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r ${theme.gradients.primary} hover:from-orange-600 hover:to-orange-700 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all`}
+            >
+              Call Now
+            </a>
           </div>
         </div>
       </div>
