@@ -32,7 +32,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, collapsed, setCol
     { 
       name: 'Articles', 
       icon: FileText, 
-      href: '/admin/articles',
+      href: '/admin/article-management',
       color: 'text-blue-600'
     },
     { 
