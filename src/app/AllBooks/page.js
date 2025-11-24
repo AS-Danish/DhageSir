@@ -1,6 +1,8 @@
 "use client";
-import React, { useState } from 'react';
-import { BookOpen, Search, ShoppingBag, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { BookOpen, Search, ShoppingBag, ArrowRight, Loader } from 'lucide-react';
+import { db } from '../../firebase/firebaseConfig';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 
 // Theme configuration
 const theme = {
@@ -35,77 +37,137 @@ const getButton = (variant = 'primary') => {
 const BooksPage = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [books, setBooks] = useState([]);
+  const [categories, setCategories] = useState(['All']);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const books = [
-    {
-      id: 1,
-      image: "https://images.unsplash.com/photo-1589998059171-988d887df646?w=400&h=500&fit=crop",
-      title: "Strategic Combat Leadership",
-      description: "A comprehensive guide to tactical decision-making and leadership principles derived from 25 years of military experience.",
-      category: "Military Strategy",
-    },
-    {
-      id: 2,
-      image: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400&h=500&fit=crop",
-      title: "The Warrior's Mindset",
-      description: "Discover the mental frameworks and discipline techniques that transform ordinary individuals into extraordinary leaders.",
-      category: "Leadership",
-    },
-    {
-      id: 3,
-      image: "https://images.unsplash.com/photo-1532012197267-da84d127e765?w=400&h=500&fit=crop",
-      title: "Defense Exam Mastery",
-      description: "Complete preparation strategy for NDA, CDS, and AFCAT exams with proven techniques for success.",
-      category: "Exam Preparation",
-    },
-    {
-      id: 4,
-      image: "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&h=500&fit=crop",
-      title: "Fitness for Warriors",
-      description: "Medical insights and fitness protocols specifically designed for defense personnel and aspirants.",
-      category: "Health & Fitness",
-    },
-    {
-      id: 5,
-      image: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400&h=500&fit=crop",
-      title: "Advanced Tactical Operations",
-      description: "Deep dive into special operations tactics, counter-insurgency strategies, and asymmetric warfare principles.",
-      category: "Military Strategy",
-    },
-    {
-      id: 6,
-      image: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=500&fit=crop",
-      title: "Leadership Under Fire",
-      description: "Real-world case studies of decision-making in high-pressure situations from combat zones to corporate boardrooms.",
-      category: "Leadership",
-    },
-    {
-      id: 7,
-      image: "https://images.unsplash.com/photo-1519682337058-a94d519337bc?w=400&h=500&fit=crop",
-      title: "SSB Interview Success",
-      description: "Complete guide to cracking the Services Selection Board interview with psychology insights and practical tips.",
-      category: "Exam Preparation",
-    },
-    {
-      id: 8,
-      image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&h=500&fit=crop",
-      title: "Mental Resilience Training",
-      description: "Build unbreakable mental strength through proven psychological techniques and resilience frameworks.",
-      category: "Health & Fitness",
-    },
-  ];
+  // Fetch books from Firebase with caching
+  const fetchBooksFromFirebase = async () => {
+    try {
+      // Check cache first
+      const cachedBooks = localStorage.getItem('all_books_cache');
+      const cacheTimestamp = localStorage.getItem('all_books_cache_timestamp');
+      
+      // Use cache if it's less than 5 minutes old
+      if (cachedBooks && cacheTimestamp) {
+        const cacheAge = Date.now() - parseInt(cacheTimestamp);
+        if (cacheAge < 5 * 60 * 1000) { // 5 minutes
+          console.log('Loading all books from cache');
+          const cachedData = JSON.parse(cachedBooks);
+          setBooks(cachedData);
+          extractCategories(cachedData);
+          setLoading(false);
+          // Still fetch in background to update cache
+          fetchAndCacheBooks();
+          return;
+        }
+      }
+      
+      // No valid cache, fetch from Firebase
+      await fetchAndCacheBooks();
+    } catch (err) {
+      console.error('Error loading books:', err);
+      setError('Failed to load books. Please try again later.');
+      setLoading(false);
+    }
+  };
 
-  const categories = ['All', 'Military Strategy', 'Leadership', 'Exam Preparation', 'Health & Fitness'];
+  // Fetch and cache books from Firebase
+  const fetchAndCacheBooks = async () => {
+    try {
+      // Query all books ordered by creation date
+      const booksQuery = query(
+        collection(db, "books"),
+        orderBy("created_at", "desc")
+      );
+      
+      const querySnapshot = await getDocs(booksQuery);
+      const booksData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      // Update state
+      setBooks(booksData);
+      extractCategories(booksData);
+      setLoading(false);
+
+      // Cache the data
+      localStorage.setItem('all_books_cache', JSON.stringify(booksData));
+      localStorage.setItem('all_books_cache_timestamp', Date.now().toString());
+      
+      console.log('All books fetched and cached successfully');
+    } catch (err) {
+      console.error('Error fetching books from Firebase:', err);
+      setError('Failed to load books from database.');
+      setLoading(false);
+    }
+  };
+
+  // Extract unique categories from books
+  const extractCategories = (booksData) => {
+    const uniqueCategories = ['All'];
+    booksData.forEach(book => {
+      if (book.book_category && !uniqueCategories.includes(book.book_category)) {
+        uniqueCategories.push(book.book_category);
+      }
+    });
+    setCategories(uniqueCategories);
+  };
+
+  // Handle book purchase click
+  const handlePurchaseClick = (book) => {
+    if (book.book_url) {
+      window.open(book.book_url, '_blank', 'noopener,noreferrer');
+    } else {
+      alert('Purchase link not available for this book.');
+    }
+  };
+
+  useEffect(() => {
+    fetchBooksFromFirebase();
+  }, []);
 
   const filteredBooks = books.filter(book => {
-    const matchesCategory = selectedCategory === 'All' || book.category === selectedCategory;
+    const matchesCategory = selectedCategory === 'All' || book.book_category === selectedCategory;
     const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          book.description.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 pt-20">
+        <div className="flex flex-col items-center justify-center py-40">
+          <Loader className="w-16 h-16 text-orange-500 animate-spin mb-4" />
+          <p className="text-gray-600 font-semibold text-lg">Loading books...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 pt-20">
+        <div className="flex flex-col items-center justify-center py-40">
+          <BookOpen className="w-16 h-16 text-gray-300 mb-4" />
+          <p className="text-red-600 font-semibold mb-4 text-lg">{error}</p>
+          <button 
+            onClick={fetchBooksFromFirebase}
+            className={getButton('primary')}
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 pt-15">
+    <div className="min-h-screen bg-gray-50 pt-20">
       {/* Filter Section */}
       <section className="py-8 bg-white border-b-2 border-gray-100 sticky top-0 z-40 shadow-lg">
         <div className="container mx-auto px-4 max-w-7xl">
@@ -159,16 +221,19 @@ const BooksPage = () => {
                   {/* Book Image */}
                   <div className="relative overflow-hidden h-72">
                     <img 
-                      src={book.image}
+                      src={book.book_image_url || 'https://images.unsplash.com/photo-1589998059171-988d887df646?w=400&h=500&fit=crop'}
                       alt={book.title}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      onError={(e) => {
+                        e.target.src = 'https://images.unsplash.com/photo-1589998059171-988d887df646?w=400&h=500&fit=crop';
+                      }}
                     />
                     <div className={`absolute inset-0 bg-gradient-to-t ${theme.gradients.overlay} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
                     
                     {/* Category Badge */}
                     <div className="absolute top-4 left-4">
                       <span className={`px-3 py-1 ${theme.backgrounds.white} backdrop-blur-sm ${theme.text.primary} text-xs font-bold rounded-full ${theme.shadows.lg}`}>
-                        {book.category}
+                        {book.book_category || 'General'}
                       </span>
                     </div>
                   </div>
@@ -183,7 +248,10 @@ const BooksPage = () => {
                     </p>
                     
                     {/* Purchase Button */}
-                    <button className={`w-full inline-flex items-center justify-center gap-2 ${getButton('primary')} py-3`}>
+                    <button 
+                      onClick={() => handlePurchaseClick(book)}
+                      className={`w-full inline-flex items-center justify-center gap-2 ${getButton('primary')} py-3`}
+                    >
                       <ShoppingBag className="w-5 h-5" />
                       Purchase Book
                       <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
