@@ -231,12 +231,6 @@ const BooksSection = () => {
                       {book.book_category || 'General'}
                     </span>
                   </div>
-
-                  {/* Rating */}
-                  <div className={`absolute top-4 right-4 flex items-center gap-1 bg-yellow-400 px-2 py-1 rounded-full ${theme.shadows.lg}`}>
-                    <Star className="w-3 h-3 fill-yellow-900 text-yellow-900" />
-                    <span className="text-xs font-bold text-yellow-900">4.8</span>
-                  </div>
                 </div>
 
                 {/* Book Info */}
