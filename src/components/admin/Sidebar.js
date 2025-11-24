@@ -50,7 +50,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, collapsed, setCol
     { 
       name: 'Study Materials', 
       icon: FolderOpen, 
-      href: '/admin/study-materials',
+      href: '/admin/study-materials-management',
       color: 'text-orange-600'
     },
     { 
