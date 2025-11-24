@@ -56,7 +56,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, collapsed, setCol
     { 
       name: 'Images', 
       icon: Image, 
-      href: '/admin/images',
+      href: '/admin/gallery-management',
       color: 'text-pink-600'
     },
   ];
