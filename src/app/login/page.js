@@ -99,7 +99,7 @@ const LoginPage = () => {
             <Shield className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-4xl font-black text-white mb-2">
-            Defense <span className="bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">Admin</span>
+            Mentors <span className="bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">Forum</span>
           </h1>
           <p className="text-gray-400">Sign in to access your dashboard</p>
         </div>
