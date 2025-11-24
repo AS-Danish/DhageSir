@@ -72,7 +72,7 @@ const ImprovedNavbar = () => {
         <div className="flex items-center justify-between">
           {/* Logo - Left Aligned */}
           <div className="flex-shrink-0">
-            <a href="#home" className="relative group cursor-pointer block">
+            <a href="/" className="relative group cursor-pointer block">
               <div className={`relative w-18 h-18 rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-all duration-300 overflow-hidden`}>
                 <img
                   src="/logo.jpeg"
@@ -86,7 +86,7 @@ const ImprovedNavbar = () => {
           {/* Desktop Navigation - Center Aligned */}
           <div className="hidden lg:flex items-center space-x-2 absolute left-1/2 transform -translate-x-1/2">
             <a
-              href="#home"
+              href="/"
               className={`relative px-4 py-2 ${theme.text.secondary} hover:${theme.text.brand} font-semibold transition-colors duration-300 group`}
             >
               {t.home}
