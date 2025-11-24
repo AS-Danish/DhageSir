@@ -461,36 +461,26 @@ const AdminVideosPage = () => {
 
   // Initial load
   useEffect(() => {
-    const loadData = async () => {
-      setInitialLoading(true);
-      try {
-        await loadAllChannels();
-
-        const lastFetch = localStorage.getItem('videos_last_fetch');
-        const shouldAutoFetch = !lastFetch ||
-          (new Date() - new Date(lastFetch)) > 60 * 60 * 1000;
-
-        if (shouldAutoFetch) {
-          console.log('⏰ Auto-fetching latest videos...');
-          setTimeout(() => {
-            autoFetchAllChannels().catch(err => {
-              console.error('Background fetch failed:', err);
-              setFetchError('Failed to auto-fetch videos. Click Refresh to try again.');
-            });
-          }, 1000);
-        } else {
-          setLastFetchTime(lastFetch);
-        }
-      } catch (error) {
-        console.error('Error loading data:', error);
-        setFetchError('Failed to load videos from database');
-      } finally {
-        setInitialLoading(false);
+  const loadData = async () => {
+    setInitialLoading(true);
+    try {
+      // Just load existing videos from Firebase
+      await loadAllChannels();
+      
+      const lastFetch = localStorage.getItem('videos_last_fetch');
+      if (lastFetch) {
+        setLastFetchTime(lastFetch);
       }
-    };
-
-    loadData();
-  }, []);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      setFetchError('Failed to load videos from database');
+    } finally {
+      setInitialLoading(false);
+    }
+  };
+  
+  loadData();
+}, []);
 
   const totalVideos = Object.values(totalCounts).reduce((sum, count) => sum + count, 0);
 
