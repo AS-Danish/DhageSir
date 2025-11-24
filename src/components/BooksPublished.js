@@ -1,38 +1,177 @@
-import React from 'react';
-import { BookOpen, Star, ArrowRight, Library } from 'lucide-react';
-import { theme, getButton } from '../app/theme/theme';
+import React, { useState, useEffect } from 'react';
+import { BookOpen, Star, ArrowRight, Library, Loader } from 'lucide-react';
+import { db } from '../firebase/firebaseConfig';
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+
+// Theme configuration
+const theme = {
+  gradients: {
+    light: 'from-orange-50 to-white',
+    primary: 'from-orange-500 to-orange-600',
+    overlay: 'from-transparent via-orange-900/20 to-orange-900/80'
+  },
+  backgrounds: {
+    primary: 'bg-orange-500',
+    white: 'bg-white/90'
+  },
+  text: {
+    primary: 'text-gray-900',
+    secondary: 'text-gray-600',
+    brand: 'text-orange-600'
+  },
+  cards: {
+    elevated: 'bg-white shadow-xl'
+  },
+  shadows: {
+    lg: 'shadow-lg'
+  },
+  badges: {
+    primary: 'bg-orange-100 text-orange-600'
+  }
+};
+
+const getButton = (variant = 'primary') => {
+  const variants = {
+    primary: 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl py-3 px-6 font-bold transition-all hover:scale-105 hover:shadow-2xl'
+  };
+  return variants[variant];
+};
 
 const BooksSection = () => {
-  const books = [
-    {
-      id: 1,
-      image: "https://images.unsplash.com/photo-1589998059171-988d887df646?w=400&h=500&fit=crop",
-      title: "Strategic Combat Leadership",
-      description: "A comprehensive guide to tactical decision-making and leadership principles derived from 25 years of military experience.",
-      category: "Military Strategy"
-    },
-    {
-      id: 2,
-      image: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400&h=500&fit=crop",
-      title: "The Warrior's Mindset",
-      description: "Discover the mental frameworks and discipline techniques that transform ordinary individuals into extraordinary leaders.",
-      category: "Leadership"
-    },
-    {
-      id: 3,
-      image: "https://images.unsplash.com/photo-1532012197267-da84d127e765?w=400&h=500&fit=crop",
-      title: "Defense Exam Mastery",
-      description: "Complete preparation strategy for NDA, CDS, and AFCAT exams with proven techniques for success.",
-      category: "Exam Preparation"
-    },
-    {
-      id: 4,
-      image: "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&h=500&fit=crop",
-      title: "Fitness for Warriors",
-      description: "Medical insights and fitness protocols specifically designed for defense personnel and aspirants.",
-      category: "Health & Fitness"
+  const [books, setBooks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Truncate description to specified word count
+  const truncateDescription = (text, wordLimit = 20) => {
+    if (!text) return '';
+    const words = text.split(' ');
+    if (words.length <= wordLimit) return text;
+    return words.slice(0, wordLimit).join(' ') + '...';
+  };
+
+  // Fetch books from Firebase with caching
+  const fetchBooksFromFirebase = async () => {
+    try {
+      // Check cache first
+      const cachedBooks = localStorage.getItem('books_section_cache');
+      const cacheTimestamp = localStorage.getItem('books_section_cache_timestamp');
+      
+      // Use cache if it's less than 5 minutes old
+      if (cachedBooks && cacheTimestamp) {
+        const cacheAge = Date.now() - parseInt(cacheTimestamp);
+        if (cacheAge < 5 * 60 * 1000) { // 5 minutes
+          console.log('Loading books from cache');
+          setBooks(JSON.parse(cachedBooks));
+          setLoading(false);
+          // Still fetch in background to update cache
+          fetchAndCacheBooks();
+          return;
+        }
+      }
+      
+      // No valid cache, fetch from Firebase
+      await fetchAndCacheBooks();
+    } catch (err) {
+      console.error('Error loading books:', err);
+      setError('Failed to load books. Please try again later.');
+      setLoading(false);
     }
-  ];
+  };
+
+  // Fetch and cache books from Firebase
+  const fetchAndCacheBooks = async () => {
+    try {
+      // Query latest 4 books
+      const booksQuery = query(
+        collection(db, "books"),
+        orderBy("created_at", "desc"),
+        limit(4)
+      );
+      
+      const querySnapshot = await getDocs(booksQuery);
+      const booksData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      // Update state
+      setBooks(booksData);
+      setLoading(false);
+
+      // Cache the data
+      localStorage.setItem('books_section_cache', JSON.stringify(booksData));
+      localStorage.setItem('books_section_cache_timestamp', Date.now().toString());
+      
+      console.log('Books fetched and cached successfully');
+    } catch (err) {
+      console.error('Error fetching books from Firebase:', err);
+      setError('Failed to load books from database.');
+      setLoading(false);
+    }
+  };
+
+  // Handle book click - redirect to purchase URL
+  const handleBookClick = (book) => {
+    if (book.book_url) {
+      window.open(book.book_url, '_blank', 'noopener,noreferrer');
+    } else {
+      alert('Purchase link not available for this book.');
+    }
+  };
+
+  useEffect(() => {
+    fetchBooksFromFirebase();
+  }, []);
+
+  // Loading state
+  if (loading) {
+    return (
+      <section className={`py-16 md:py-20 bg-gradient-to-br ${theme.gradients.light}`}>
+        <div className="container mx-auto px-4 max-w-7xl">
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader className="w-12 h-12 text-orange-500 animate-spin mb-4" />
+            <p className="text-gray-600 font-semibold">Loading books...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <section className={`py-16 md:py-20 bg-gradient-to-br ${theme.gradients.light}`}>
+        <div className="container mx-auto px-4 max-w-7xl">
+          <div className="flex flex-col items-center justify-center py-20">
+            <BookOpen className="w-16 h-16 text-gray-300 mb-4" />
+            <p className="text-red-600 font-semibold mb-2">{error}</p>
+            <button 
+              onClick={fetchBooksFromFirebase}
+              className={`mt-4 ${getButton('primary')}`}
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Empty state
+  if (books.length === 0) {
+    return (
+      <section className={`py-16 md:py-20 bg-gradient-to-br ${theme.gradients.light}`}>
+        <div className="container mx-auto px-4 max-w-7xl">
+          <div className="flex flex-col items-center justify-center py-20">
+            <BookOpen className="w-16 h-16 text-gray-300 mb-4" />
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">No books available</h3>
+            <p className="text-gray-600">Check back soon for new publications!</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className={`py-16 md:py-20 bg-gradient-to-br ${theme.gradients.light} relative overflow-hidden`}>
@@ -57,7 +196,10 @@ const BooksSection = () => {
           </div>
           
           {/* View All Button - Desktop */}
-          <button className={`hidden md:inline-flex items-center gap-2 ${getButton('primary')} group`}>
+          <button 
+            onClick={() => window.location.href = '/AllBooks'}
+            className={`hidden md:inline-flex items-center gap-2 ${getButton('primary')} group`}
+          >
             <Library className="w-5 h-5" />
             View All Books
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -73,9 +215,12 @@ const BooksSection = () => {
                 {/* Book Image */}
                 <div className="relative overflow-hidden h-64">
                   <img 
-                    src={book.image}
+                    src={book.book_image_url || 'https://images.unsplash.com/photo-1589998059171-988d887df646?w=400&h=500&fit=crop'}
                     alt={book.title}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    onError={(e) => {
+                      e.target.src = 'https://images.unsplash.com/photo-1589998059171-988d887df646?w=400&h=500&fit=crop';
+                    }}
                   />
                   {/* Gradient Overlay */}
                   <div className={`absolute inset-0 bg-gradient-to-t ${theme.gradients.overlay} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
@@ -83,7 +228,7 @@ const BooksSection = () => {
                   {/* Category Badge */}
                   <div className="absolute top-4 left-4">
                     <span className={`px-3 py-1 ${theme.backgrounds.white} backdrop-blur-sm ${theme.text.primary} text-xs font-bold rounded-full ${theme.shadows.lg}`}>
-                      {book.category}
+                      {book.book_category || 'General'}
                     </span>
                   </div>
 
@@ -96,15 +241,18 @@ const BooksSection = () => {
 
                 {/* Book Info */}
                 <div className="p-6">
-                  <h3 className={`text-xl font-bold ${theme.text.primary} mb-3 group-hover:${theme.text.brand} transition-colors`}>
+                  <h3 className={`text-xl font-bold ${theme.text.primary} mb-3 group-hover:${theme.text.brand} transition-colors line-clamp-2`}>
                     {book.title}
                   </h3>
-                  <p className={`${theme.text.secondary} text-sm leading-relaxed mb-5 line-clamp-3`}>
-                    {book.description}
+                  <p className={`${theme.text.secondary} text-sm leading-relaxed mb-5`}>
+                    {truncateDescription(book.description, 20)}
                   </p>
                   
                   {/* Read More Button */}
-                  <button className={`inline-flex items-center gap-2 ${theme.text.brand} font-bold text-sm group-hover:gap-3 transition-all`}>
+                  <button 
+                    onClick={() => handleBookClick(book)}
+                    className={`inline-flex items-center gap-2 ${theme.text.brand} font-bold text-sm group-hover:gap-3 transition-all`}
+                  >
                     Read More
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </button>
@@ -119,7 +267,10 @@ const BooksSection = () => {
 
         {/* View All Button - Mobile */}
         <div className="flex justify-center md:hidden">
-          <button className={`inline-flex items-center gap-2 ${getButton('primary')} group w-full md:w-auto justify-center`}>
+          <button 
+            onClick={() => window.location.href = '/AllBooks'}
+            className={`inline-flex items-center gap-2 ${getButton('primary')} group w-full md:w-auto justify-center`}
+          >
             <Library className="w-5 h-5" />
             View All Books
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
