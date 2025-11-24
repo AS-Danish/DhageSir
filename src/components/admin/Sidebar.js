@@ -44,7 +44,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, collapsed, setCol
     { 
       name: 'Videos', 
       icon: Video, 
-      href: '/admin/videos',
+      href: '/admin/video-management',
       color: 'text-purple-600'
     },
     { 
