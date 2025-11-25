@@ -1,6 +1,6 @@
 "use client"
 import React, { useState } from 'react';
-import { Mail, Phone, MapPin, Clock, Send, MessageCircle } from 'lucide-react';
+import { Mail, Phone, MapPin, Clock, Send, MessageCircle, CheckCircle, AlertCircle } from 'lucide-react';
 
 // Global Theme Colors
 const theme = {
@@ -25,9 +25,45 @@ const ContactSection = () => {
     message: ''
   });
 
-  const handleSubmit = (e) => {
+  const [status, setStatus] = useState({
+    loading: false,
+    success: false,
+    error: null
+  });
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
+    setStatus({ loading: true, success: false, error: null });
+
+    try {
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setStatus({ loading: false, success: true, error: null });
+        setFormData({ name: '', email: '', phone: '', message: '' });
+        
+        // Reset success message after 5 seconds
+        setTimeout(() => {
+          setStatus({ loading: false, success: false, error: null });
+        }, 5000);
+      } else {
+        throw new Error(data.error || 'Failed to send message');
+      }
+    } catch (error) {
+      setStatus({ 
+        loading: false, 
+        success: false, 
+        error: error.message || 'Failed to send message. Please try again.' 
+      });
+    }
   };
 
   const handleChange = (e) => {
@@ -157,6 +193,7 @@ const ContactSection = () => {
                     value={formData.name}
                     onChange={handleChange}
                     placeholder="Enter your full name"
+                    required
                     className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none transition-all"
                   />
                 </div>
@@ -169,6 +206,7 @@ const ContactSection = () => {
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="your.email@example.com"
+                    required
                     className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none transition-all"
                   />
                 </div>
@@ -193,16 +231,43 @@ const ContactSection = () => {
                     onChange={handleChange}
                     rows="4"
                     placeholder="Tell us how we can help you..."
+                    required
                     className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none transition-all resize-none"
                   ></textarea>
                 </div>
+
+                {/* Status Messages */}
+                {status.success && (
+                  <div className="flex items-center gap-2 p-4 bg-green-50 border-2 border-green-200 rounded-xl text-green-700">
+                    <CheckCircle className="w-5 h-5 flex-shrink-0" />
+                    <span className="font-semibold">Message sent successfully! We'll get back to you soon.</span>
+                  </div>
+                )}
+
+                {status.error && (
+                  <div className="flex items-center gap-2 p-4 bg-red-50 border-2 border-red-200 rounded-xl text-red-700">
+                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                    <span className="font-semibold">{status.error}</span>
+                  </div>
+                )}
                 
                 <button 
+                  type="button"
                   onClick={handleSubmit}
-                  className={`w-full bg-gradient-to-r ${theme.gradients.primary} hover:from-orange-600 hover:to-orange-700 text-white rounded-xl py-4 px-6 font-bold hover:shadow-2xl hover:scale-105 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-orange-500/20`}
+                  disabled={status.loading}
+                  className={`w-full bg-gradient-to-r ${theme.gradients.primary} hover:from-orange-600 hover:to-orange-700 text-white rounded-xl py-4 px-6 font-bold hover:shadow-2xl hover:scale-105 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-orange-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100`}
                 >
-                  <Send className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                  Send Message
+                  {status.loading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                      Send Message
+                    </>
+                  )}
                 </button>
               </div>
             </div>
