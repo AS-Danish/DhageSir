@@ -15,21 +15,17 @@ import {
 
 const Footer = () => {
   const quickLinks = [
-    { name: 'Home', href: '#' },
-    { name: 'About Us', href: '#' },
-    { name: 'Courses', href: '#' },
-    { name: 'Success Stories', href: '#' },
-    { name: 'Blog & Articles', href: '#' },
-    { name: 'Contact', href: '#' },
+    { name: 'Home', href: '/' },
+    { name: 'About', href: '/#about' },
+    { name: 'Military', href: '/#military' },
+    { name: 'Mentor', href: '/#mentor' },
+    { name: 'Podcasts', href: '/#podcast' },
   ];
 
   const resources = [
+    { name: 'Images', href: '#' },
+    { name: 'Videos', href: '#' },
     { name: 'Study Materials', href: '#' },
-    { name: 'Mock Tests', href: '#' },
-    { name: 'Previous Papers', href: '#' },
-    { name: 'Video Lectures', href: '#' },
-    { name: 'Career Guidance', href: '#' },
-    { name: 'FAQ', href: '#' },
   ];
 
   const socialLinks = [
@@ -81,7 +77,7 @@ const Footer = () => {
                 </div>
                 <div>
                   <div className="text-sm font-semibold text-gray-200">Email</div>
-                  <div className="text-sm text-gray-400">contact@defenseacademy.com</div>
+                  <div className="text-sm text-gray-400">drsatishdhage@gmail.com</div>
                 </div>
               </div>
 
@@ -91,7 +87,7 @@ const Footer = () => {
                 </div>
                 <div>
                   <div className="text-sm font-semibold text-gray-200">Phone</div>
-                  <div className="text-sm text-gray-400">+91 98765 43210</div>
+                  <div className="text-sm text-gray-400">+91 98222 42782</div>
                 </div>
               </div>
             </div>
@@ -173,8 +169,7 @@ const Footer = () => {
         <div className="border-t border-gray-700/50 pt-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="text-gray-400 text-sm text-center md:text-left">
-              © 2025 Mentors Forum. All rights reserved. Built with{' '}
-              <Heart className="w-4 h-4 inline text-red-500" /> for our nation's defenders.
+              © 2025 Mentors Forum. All rights reserved. Built for our nation's defenders.
             </div>
             
             <div className="flex items-center gap-6 text-sm">
