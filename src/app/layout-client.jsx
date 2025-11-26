@@ -1,21 +1,22 @@
-'use client';
+"use client";
 
-import { usePathname } from 'next/navigation';
-import ImprovedNavbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
+import { usePathname } from "next/navigation";
+import ImprovedNavbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import { LanguageProvider } from "@/context/LanguageContext";
 
 export default function LayoutClient({ children }) {
   const pathname = usePathname();
 
-  const hideLayout =
-    pathname === '/login' ||
-    pathname.startsWith('/admin');
+  const hideLayout = pathname === "/login" || pathname.startsWith("/admin");
 
   return (
     <>
-      {!hideLayout && <ImprovedNavbar />}
-      {children}
-      {!hideLayout && <Footer />}
+      <LanguageProvider>
+        {!hideLayout && <ImprovedNavbar />}
+        {children}
+        {!hideLayout && <Footer />}
+      </LanguageProvider>
     </>
   );
 }
