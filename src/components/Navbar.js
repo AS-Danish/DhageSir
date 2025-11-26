@@ -2,40 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, Menu, X, Globe } from 'lucide-react';
 import { theme } from '../app/theme/theme';
-
-const translations = {
-  en: {
-    home: "Home",
-    about: "About",
-    military: "Military",
-    mentor: "Mentor",
-    download: "Download",
-    images: "Images",
-    videos: "Videos",
-    studyMaterials: "Study Materials",
-    language: "Language"
-  },
-  mr: {
-    home: "मुख्यपृष्ठ",
-    about: "आमच्याबद्दल",
-    military: "लष्करी",
-    mentor: "मार्गदर्शक",
-    download: "डाउनलोड",
-    images: "प्रतिमा",
-    videos: "व्हिडिओ",
-    studyMaterials: "अभ्यास साहित्य",
-    language: "भाषा"
-  }
-};
+import { useLanguage } from '../context/LanguageContext'; // Import the hook
 
 const ImprovedNavbar = () => {
-  const [language, setLanguage] = useState('en');
+  const { language, setLanguage, t } = useLanguage(); // Use the language context
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [downloadOpen, setDownloadOpen] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-
-  const t = translations[language];
 
   useEffect(() => {
     const handleScroll = () => {
