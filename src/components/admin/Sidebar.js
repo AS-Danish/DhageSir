@@ -48,6 +48,12 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, collapsed, setCol
       color: 'text-purple-600'
     },
     { 
+      name: 'Podcasts', 
+      icon: Video, 
+      href: '/admin/podcast-management',
+      color: 'text-purple-600'
+    },
+    { 
       name: 'Study Materials', 
       icon: FolderOpen, 
       href: '/admin/study-materials-management',
