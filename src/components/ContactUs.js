@@ -77,15 +77,15 @@ const ContactSection = () => {
     {
       icon: Phone,
       label: "Phone Number",
-      value: "+91 98765 43210",
-      link: "tel:+919876543210",
+      value: "+91 98222 42782",
+      link: "tel:+919822242782",
       gradient: theme.iconGradients.phone
     },
     {
       icon: Mail,
       label: "Email Address",
-      value: "contact@colonel.com",
-      link: "mailto:contact@colonel.com",
+      value: "drsatishdhage@gmail.com",
+      link: "mailto:drsatishdhage@gmail.com",
       gradient: theme.iconGradients.email
     },
   ];
