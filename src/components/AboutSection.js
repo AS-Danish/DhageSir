@@ -1,20 +1,22 @@
 import React from 'react';
-import { CheckCircle, Shield, Stethoscope, GraduationCap, TrendingUp, Download, Star, Award, Users, Target } from 'lucide-react';
-import { theme, getGradient, getButton } from '../app/theme/theme';
+import { CheckCircle, Target, Download, Star } from 'lucide-react';
+import { theme, getButton } from '../app/theme/theme';
+import { useLanguage } from '../context/LanguageContext'; // Import the hook
 
 const AboutSection = () => {
+  const { t } = useLanguage(); // Use the language context
 
   const achievements = [
-    { icon: Target, text: "Expert in strategic planning, leadership development, and combat readiness training" },
-    { icon: CheckCircle, text: "Published author on military tactics and defense strategies, featured in national publications" },
-    { icon: CheckCircle, text: "Renowned motivational speaker delivering 100+ seminars on discipline and success mindset" },
-    { icon: CheckCircle, text: "Medical professional specializing in defense personnel healthcare and fitness protocols" }
+    { icon: Target, text: t.achievement1 },
+    { icon: CheckCircle, text: t.achievement2 },
+    { icon: CheckCircle, text: t.achievement3 },
+    { icon: CheckCircle, text: t.achievement4 }
   ];
 
   const stats = [
-    { value: "25+", label: "Years Experience" },
-    { value: "5000+", label: "Students Mentored" },
-    { value: "98%", label: "Success Rate" }
+    { value: "25+", label: t.yearsExperience },
+    { value: "5000+", label: t.studentsMentored },
+    { value: "98%", label: t.successRate }
   ];
 
   return (
@@ -28,10 +30,10 @@ const AboutSection = () => {
         <div className="text-center mb-12">
           <div className={`inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r ${theme.gradients.primary} ${theme.text.white} rounded-full text-sm font-semibold mb-4 ${theme.shadows.lg}`}>
             <Star className="w-4 h-4 fill-white" />
-            About Me
+            {t.aboutMe}
           </div>
           <h2 className={`text-4xl md:text-5xl font-black ${theme.text.primary} mb-3`}>
-            Leading With <span className={`bg-gradient-to-r ${theme.gradients.primary} bg-clip-text text-transparent`}>Excellence</span>
+            {t.leadingWith} <span className={`bg-gradient-to-r ${theme.gradients.primary} bg-clip-text text-transparent`}>{t.excellence}</span>
           </h2>
         </div>
 
@@ -54,18 +56,30 @@ const AboutSection = () => {
                     allowFullScreen
                   ></iframe>
                 </div>
-                
               </div>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-3 gap-4 mt-6">
+              {stats.map((stat, index) => (
+                <div key={index} className={`${theme.backgrounds.white} rounded-xl p-4 ${theme.shadows.lg} text-center ${theme.borders.light} border`}>
+                  <div className={`text-2xl md:text-3xl font-black ${theme.text.brand} mb-1`}>
+                    {stat.value}
+                  </div>
+                  <div className={`text-xs ${theme.text.secondary} font-medium`}>
+                    {stat.label}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
           {/* Right Side - Content */}
           <div className="space-y-6">
-
             {/* Achievements List */}
             <div className="space-y-4 pt-2">
               <h3 className={`text-xl font-bold ${theme.text.primary} mb-4`}>
-                Key Achievements & Expertise
+                {t.keyAchievements}
               </h3>
               {achievements.map((item, index) => {
                 const Icon = item.icon;
@@ -86,7 +100,7 @@ const AboutSection = () => {
             <div className="flex flex-wrap gap-4 pt-4">
               <button className={`${getButton('primary')} inline-flex items-center gap-3 group`}>
                 <Download className="w-5 h-5 group-hover:animate-bounce" />
-                Download CV
+                {t.downloadCV}
               </button>
             </div>
           </div>
