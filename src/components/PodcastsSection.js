@@ -383,52 +383,6 @@ const PodcastsSection = () => {
                 </p>
               </div>
             )}
-
-            {/* Podcast Platforms */}
-            {podcasts.length > 0 && platforms.length > 0 && (
-              <div className={`bg-gradient-to-br ${theme.gradients.light} rounded-3xl p-8 md:p-10 ${theme.shadows.xl} ${theme.borders.light} border`}>
-                <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
-                  {/* Left Side - Platforms */}
-                  <div className="flex-1">
-                    <h3 className={`text-2xl font-black ${theme.text.primary} mb-2 flex items-center gap-3`}>
-                      <Podcast className={`w-8 h-8 ${theme.text.brand}`} />
-                      Watch on Your Favorite Platform
-                    </h3>
-                    <p className={`${theme.text.secondary} mb-5`}>Subscribe to get notified about new episodes and exclusive content</p>
-                    
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      {platforms.slice(0, 2).map((platform, idx) => (
-                        <a 
-                          key={platform.name}
-                          href={platform.url || '#'}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`inline-flex items-center justify-center gap-3 ${getButton(idx === 0 ? 'primary' : 'outline')} group`}
-                        >
-                          <Mic className="w-5 h-5" />
-                          {platform.name}
-                          <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Right Side - View All Button */}
-                  <div className={`lg:border-l ${theme.borders.dark} lg:pl-8`}>
-                    <a
-                      href={platforms.length > 0 ? platforms[0].url : '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`inline-flex items-center gap-3 ${getButton('dark')} group whitespace-nowrap`}
-                    >
-                      <Headphones className="w-6 h-6" />
-                      View All Episodes
-                      <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-                    </a>
-                  </div>
-                </div>
-              </div>
-            )}
           </>
         )}
       </div>
