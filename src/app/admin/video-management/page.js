@@ -108,17 +108,30 @@ const AdminVideosPage = () => {
   };
 
   // Parse YouTube RSS
-  const parseYouTubeRSS = async (channelId, retries = 2) => {
+  // Parse YouTube RSS
+  const parseYouTubeRSS = async (channelId, retries = 3) => {
     const RSS_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
-    const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+    
+    // Try multiple CORS proxies
+    const CORS_PROXIES = [
+      'https://api.allorigins.win/raw?url=',
+      'https://corsproxy.io/?',
+      'https://api.codetabs.com/v1/proxy?quest=',
+    ];
 
     for (let attempt = 0; attempt <= retries; attempt++) {
+      // Rotate through different proxies on each attempt
+      const CORS_PROXY = CORS_PROXIES[attempt % CORS_PROXIES.length];
+      
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased to 15 seconds
 
         const response = await fetch(CORS_PROXY + encodeURIComponent(RSS_URL), {
           signal: controller.signal,
+          headers: {
+            'Accept': 'application/xml, text/xml, */*',
+          },
         });
 
         clearTimeout(timeoutId);
@@ -128,6 +141,12 @@ const AdminVideosPage = () => {
         }
 
         const text = await response.text();
+        
+        // Check if we got valid XML
+        if (!text || text.trim().length === 0) {
+          throw new Error('Empty response received');
+        }
+
         const parser = new DOMParser();
         const xml = parser.parseFromString(text, 'text/xml');
 
@@ -137,15 +156,24 @@ const AdminVideosPage = () => {
         }
 
         const entries = xml.querySelectorAll('entry');
+        
+        if (entries.length === 0) {
+          console.warn(`No videos found for channel ${channelId}`);
+          return [];
+        }
+
         const videos = [];
 
         entries.forEach((entry) => {
-          const videoId = entry.querySelector('videoId')?.textContent || '';
+          const videoId = entry.querySelector('videoId')?.textContent || 
+                         entry.querySelector('yt\\:videoId')?.textContent || '';
           const title = entry.querySelector('title')?.textContent || '';
-          const description = entry.querySelector('group description')?.textContent ||
-            entry.querySelector('media\\:description')?.textContent || '';
+          const description = entry.querySelector('media\\:group media\\:description')?.textContent ||
+            entry.querySelector('media\\:description')?.textContent || 
+            entry.querySelector('description')?.textContent || '';
 
-          let thumbnailUrl = entry.querySelector('media\\:thumbnail')?.getAttribute('url') ||
+          let thumbnailUrl = entry.querySelector('media\\:group media\\:thumbnail')?.getAttribute('url') ||
+            entry.querySelector('media\\:thumbnail')?.getAttribute('url') ||
             entry.querySelector('thumbnail')?.getAttribute('url') ||
             `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
@@ -162,17 +190,25 @@ const AdminVideosPage = () => {
           }
         });
 
+        console.log(`✅ Successfully fetched ${videos.length} videos from ${channelId} using ${CORS_PROXY}`);
         return videos;
+
       } catch (error) {
-        console.warn(`Attempt ${attempt + 1} failed for ${channelId}:`, error.message);
+        const errorMsg = error.name === 'AbortError' ? 'Request timeout' : error.message;
+        console.warn(`Attempt ${attempt + 1}/${retries + 1} failed for ${channelId} (${CORS_PROXY}): ${errorMsg}`);
 
         if (attempt === retries) {
-          throw new Error(`Failed after ${retries + 1} attempts: ${error.message}`);
+          // Return empty array instead of throwing error to prevent the entire fetch from failing
+          console.error(`❌ All attempts failed for ${channelId}. Returning empty array.`);
+          return [];
         }
 
-        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+        // Progressive backoff: 2s, 3s, 4s
+        await new Promise(resolve => setTimeout(resolve, 2000 + (1000 * attempt)));
       }
     }
+
+    return [];
   };
 
   // Get total count for a channel
@@ -196,11 +232,12 @@ const AdminVideosPage = () => {
   };
 
   // Load videos for a specific channel with pagination
+  // Load videos for a specific channel with pagination
   const loadChannelVideos = async (channelId, page = 1, useCache = true) => {
     try {
       const cacheKey = getCacheKey(channelId, page);
 
-      if (useCache) {
+      if (useCache && page === 1) {
         const cached = getCachedData(cacheKey);
         if (cached) {
           return cached;
@@ -211,7 +248,7 @@ const AdminVideosPage = () => {
         collection(db, "videos"),
         where("channel_id", "==", channelId),
         orderBy("created_at", "desc"),
-        limit(VIDEOS_PER_PAGE * page)
+        limit(VIDEOS_PER_PAGE)
       );
 
       const snapshot = await getDocs(q);
@@ -220,8 +257,16 @@ const AdminVideosPage = () => {
         ...doc.data()
       }));
 
-      setCachedData(cacheKey, videos);
-      return videos;
+      // Remove duplicates based on video ID
+      const uniqueVideos = Array.from(
+        new Map(videos.map(video => [video.id, video])).values()
+      );
+
+      if (page === 1) {
+        setCachedData(cacheKey, uniqueVideos);
+      }
+      
+      return uniqueVideos;
     } catch (error) {
       console.error(`Error loading videos for ${channelId}:`, error);
       return [];
@@ -229,23 +274,52 @@ const AdminVideosPage = () => {
   };
 
   // Load more videos for a channel
+  // Load more videos for a channel
   const handleLoadMore = async (channelId) => {
     setLoadingMore(prev => ({ ...prev, [channelId]: true }));
 
     try {
+      const currentVideos = videosByChannel[channelId] || [];
       const currentPage = channelPagination[channelId] || 1;
-      const nextPage = currentPage + 1;
+      
+      // Get the last document for pagination
+      const lastVideo = currentVideos[currentVideos.length - 1];
+      
+      const q = lastVideo 
+        ? query(
+            collection(db, "videos"),
+            where("channel_id", "==", channelId),
+            orderBy("created_at", "desc"),
+            startAfter(lastVideo.created_at),
+            limit(VIDEOS_PER_PAGE)
+          )
+        : query(
+            collection(db, "videos"),
+            where("channel_id", "==", channelId),
+            orderBy("created_at", "desc"),
+            limit(VIDEOS_PER_PAGE)
+          );
 
-      const videos = await loadChannelVideos(channelId, nextPage, false);
+      const snapshot = await getDocs(q);
+      const newVideos = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      // Combine and remove duplicates
+      const allVideos = [...currentVideos, ...newVideos];
+      const uniqueVideos = Array.from(
+        new Map(allVideos.map(video => [video.id, video])).values()
+      );
 
       setVideosByChannel(prev => ({
         ...prev,
-        [channelId]: videos
+        [channelId]: uniqueVideos
       }));
 
       setChannelPagination(prev => ({
         ...prev,
-        [channelId]: nextPage
+        [channelId]: currentPage + 1
       }));
     } catch (error) {
       console.error('Error loading more videos:', error);
@@ -280,8 +354,14 @@ const AdminVideosPage = () => {
           const existingSnapshot = await getDocs(existingQuery);
           const existingUrls = new Set(existingSnapshot.docs.map(doc => doc.data().video_url));
 
+          // Also check by video_id to prevent duplicates
+          const existingVideoIds = new Set(
+            existingSnapshot.docs.map(doc => doc.data().video_id)
+          );
+
           for (const video of fetchedVideos) {
-            if (!existingUrls.has(video.video_url)) {
+            // Check both URL and video_id to prevent duplicates
+            if (!existingUrls.has(video.video_url) && !existingVideoIds.has(video.video_id)) {
               const videoData = {
                 ...video,
                 channel_id: channel.channel_id,
@@ -290,6 +370,8 @@ const AdminVideosPage = () => {
               };
 
               await addDoc(collection(db, "videos"), videoData);
+              existingUrls.add(video.video_url);
+              existingVideoIds.add(video.video_id);
               totalAdded++;
             } else {
               totalSkipped++;
@@ -500,7 +582,7 @@ const AdminVideosPage = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Loading Overlay */}
       {(loading || fetchingVideos) && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md">
           <div className="bg-white rounded-2xl p-8 flex flex-col items-center">
             <Loader className="w-12 h-12 text-orange-500 animate-spin mb-4" />
             <p className="text-gray-900 font-bold">
