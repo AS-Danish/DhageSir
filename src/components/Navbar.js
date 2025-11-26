@@ -68,7 +68,7 @@ const ImprovedNavbar = () => {
             </a>
 
             <a
-              href="#about"
+              href="/#about"
               className={`relative px-4 py-2 ${theme.text.secondary} hover:${theme.text.brand} font-semibold transition-colors duration-300 group`}
             >
               {t.about}
@@ -76,7 +76,7 @@ const ImprovedNavbar = () => {
             </a>
 
             <a
-              href="#military"
+              href="/#military"
               className={`relative px-4 py-2 ${theme.text.secondary} hover:${theme.text.brand} font-semibold transition-colors duration-300 group`}
             >
               {t.military}
@@ -84,7 +84,7 @@ const ImprovedNavbar = () => {
             </a>
 
             <a
-              href="#mentor"
+              href="/#mentor"
               className={`relative px-4 py-2 ${theme.text.secondary} hover:${theme.text.brand} font-semibold transition-colors duration-300 group`}
             >
               {t.mentor}
@@ -213,28 +213,28 @@ const ImprovedNavbar = () => {
         >
           <div className={`pb-4 ${theme.borders.light} border-t pt-4 space-y-1`}>
             <a
-              href="#home"
+              href="/"
               className={`block px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} rounded-xl font-medium transition-all duration-300 hover:translate-x-2`}
             >
               {t.home}
             </a>
 
             <a
-              href="#about"
+              href="/#about"
               className={`block px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} rounded-xl font-medium transition-all duration-300 hover:translate-x-2`}
             >
               {t.about}
             </a>
 
             <a
-              href="#military"
+              href="/#military"
               className={`block px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} rounded-xl font-medium transition-all duration-300 hover:translate-x-2`}
             >
               {t.military}
             </a>
 
             <a
-              href="#mentor"
+              href="/#mentor"
               className={`block px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} rounded-xl font-medium transition-all duration-300 hover:translate-x-2`}
             >
               {t.mentor}
