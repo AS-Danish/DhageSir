@@ -1,5 +1,4 @@
 "use client"
-import ImprovedNavbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import NewsTicker from "@/components/NewsTicker";
 import StatsSection from "@/components/StatsSection";
@@ -8,8 +7,8 @@ import VideosSection from "@/components/VideosSection";
 import ArticlesSection from "@/components/ArticlesSection";
 import ServicesSection from "@/components/ServicesOffered";
 import ContactSection from "@/components/ContactUs";
-import Footer from "@/components/Footer";
 import AboutSection from "@/components/AboutSection";
+import PodcastsSection from "@/components/PodcastsSection";
 
 export default function Home() {
   return (
@@ -21,6 +20,7 @@ export default function Home() {
         <AboutSection/>
         <BooksSection/>
         <VideosSection/>
+        <PodcastsSection />
         <ArticlesSection/>
         <ServicesSection/>
         <ContactSection/>
