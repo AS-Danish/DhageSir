@@ -194,7 +194,7 @@ const ContactSection = () => {
                     onChange={handleChange}
                     placeholder="Enter your full name"
                     required
-                    className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none transition-all"
+                    className="text-black w-full px-5 py-4 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none transition-all"
                   />
                 </div>
                 
@@ -207,7 +207,7 @@ const ContactSection = () => {
                     onChange={handleChange}
                     placeholder="your.email@example.com"
                     required
-                    className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none transition-all"
+                    className="text-black w-full px-5 py-4 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none transition-all"
                   />
                 </div>
                 
@@ -219,7 +219,7 @@ const ContactSection = () => {
                     value={formData.phone}
                     onChange={handleChange}
                     placeholder="+91 98765 43210"
-                    className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none transition-all"
+                    className="text-black w-full px-5 py-4 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none transition-all"
                   />
                 </div>
                 
@@ -232,7 +232,7 @@ const ContactSection = () => {
                     rows="4"
                     placeholder="Tell us how we can help you..."
                     required
-                    className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none transition-all resize-none"
+                    className="text-black w-full px-5 py-4 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none transition-all resize-none"
                   ></textarea>
                 </div>
 
