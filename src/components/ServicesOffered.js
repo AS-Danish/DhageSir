@@ -305,7 +305,7 @@ const ServicesSection = () => {
 
       {/* Booking Modal */}
       {selectedService && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 text-black">
           <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
             <div className={`bg-gradient-to-r ${selectedService.gradient} p-6 relative`}>
@@ -313,11 +313,11 @@ const ServicesSection = () => {
                 onClick={closeBookingModal}
                 className="absolute top-4 right-4 w-10 h-10 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full flex items-center justify-center transition-all"
               >
-                <X className="w-6 h-6 text-white" />
+                <X className="w-6 h-6 text-black" />
               </button>
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 bg-white bg-opacity-20 rounded-2xl flex items-center justify-center">
-                  {React.createElement(selectedService.icon, { className: "w-8 h-8 text-white" })}
+                  {React.createElement(selectedService.icon, { className: "w-8 h-8 text-black" })}
                 </div>
                 <div>
                   <h3 className="text-2xl font-black text-white">Book Service</h3>
@@ -401,7 +401,6 @@ const ServicesSection = () => {
                         onChange={handleChange}
                         className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none transition-all"
                       />
-                      <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                     </div>
                   </div>
                   
