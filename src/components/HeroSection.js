@@ -8,7 +8,7 @@ const heroSlides = [
     title: "Transform Your Future",
     subtitle: "Join 50,000+ Success Stories",
     description: "Expert guidance for defense services preparation with proven results and personalized mentorship",
-    image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&h=800&fit=crop",
+    image: "2 Raisoni.jpeg",
     cta: "Start Your Journey",
     stats: { students: "50K+", success: "95%" }
   },
