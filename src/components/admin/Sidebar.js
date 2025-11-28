@@ -13,7 +13,6 @@ import {
   X,
   ChevronRight,
   LogOut,
-  Settings,
   ChevronLeft
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -185,34 +184,6 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, collapsed, setCol
                   </Link>
                 );
               })}
-            </div>
-
-            {/* Settings Section */}
-            <div className={`mt-4 pt-4 border-t-2 border-gray-100 ${collapsed ? '' : ''}`}>
-              <Link
-                href="/admin/settings"
-                className={`
-                  flex items-center rounded-xl font-semibold text-sm text-gray-700 
-                  transition-all duration-300 group relative overflow-hidden
-                  hover:bg-gray-100 hover:scale-105 hover:shadow-md
-                  ${collapsed ? 'justify-center px-3 py-3' : 'gap-3 px-4 py-3'}
-                `}
-              >
-                <div className="flex-shrink-0 transition-transform duration-300 group-hover:scale-110">
-                  <Settings className="w-5 h-5 text-gray-500" />
-                </div>
-                <span className={`transition-all duration-300 whitespace-nowrap ${collapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
-                  Settings
-                </span>
-
-                {/* Tooltip for collapsed state */}
-                {collapsed && (
-                  <div className="hidden lg:block absolute left-full ml-4 px-3 py-2 bg-gray-900 text-white text-xs font-semibold rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-[60] pointer-events-none">
-                    Settings
-                    <div className="absolute left-0 top-1/2 -translate-x-1.5 -translate-y-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
-                  </div>
-                )}
-              </Link>
             </div>
           </nav>
 
