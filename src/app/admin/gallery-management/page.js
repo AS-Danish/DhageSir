@@ -338,7 +338,7 @@ const AdminGalleryPage = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Loading Overlay */}
       {loading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-opacity-50 z-50 flex items-center justify-center">
           <div className="bg-white rounded-2xl p-8 flex flex-col items-center">
             <Loader className="w-12 h-12 text-orange-500 animate-spin mb-4" />
             <p className="text-gray-900 font-bold">Processing...</p>
@@ -349,7 +349,7 @@ const AdminGalleryPage = () => {
       {/* Image Viewer Modal */}
       {viewingImage && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm bg-opacity-90 z-50 flex items-center justify-center p-4"
           onClick={() => setViewingImage(null)}
         >
           <div className="relative max-w-6xl max-h-[90vh]">
@@ -426,7 +426,7 @@ const AdminGalleryPage = () => {
                   value={imageForm.title}
                   onChange={(e) => setImageForm({ ...imageForm, title: e.target.value })}
                   placeholder="Enter image title (leave empty for 'Untitled')"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
+                  className="text-black w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
                 />
               </div>
 
@@ -513,10 +513,10 @@ const AdminGalleryPage = () => {
                     />
                     
                     {/* Overlay on hover */}
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center">
+                    <div className="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center">
                       <button
                         onClick={() => setViewingImage(image)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-full p-3 hover:bg-orange-500 hover:text-white"
+                        className="text-black opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-full p-3 hover:bg-orange-500 hover:text-white"
                       >
                         <ZoomIn className="w-6 h-6" />
                       </button>
