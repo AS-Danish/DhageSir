@@ -117,7 +117,7 @@ const ImprovedNavbar = () => {
                     : 'scale-95 -translate-y-2'
                   }`}>
                   <a
-                    href="#images"
+                    href="/AllImages"
                     className={`flex items-center gap-3 px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} transition-all duration-300 group`}
                   >
                     <div className={`w-10 h-10 ${theme.backgrounds.primary} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 ${theme.shadows.sm}`}>
@@ -127,7 +127,7 @@ const ImprovedNavbar = () => {
                   </a>
 
                   <a
-                    href="#videos"
+                    href="/AllVideos"
                     className={`flex items-center gap-3 px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} transition-all duration-300 group`}
                   >
                     <div className={`w-10 h-10 ${theme.backgrounds.primary} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 ${theme.shadows.sm}`}>
@@ -137,7 +137,7 @@ const ImprovedNavbar = () => {
                   </a>
 
                   <a
-                    href="#study"
+                    href="/AllStudyMaterials"
                     className={`flex items-center gap-3 px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} transition-all duration-300 group`}
                   >
                     <div className={`w-10 h-10 ${theme.backgrounds.primary} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 ${theme.shadows.sm}`}>
@@ -246,21 +246,21 @@ const ImprovedNavbar = () => {
                 {t.download}
               </div>
               <a
-                href="#images"
+                href="/AllImages"
                 className={`flex items-center gap-3 px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} rounded-xl transition-all duration-300 hover:translate-x-2`}
               >
                 <span className="text-xl">📸</span>
                 <span className="font-medium">{t.images}</span>
               </a>
               <a
-                href="#videos"
+                href="/AllVideos"
                 className={`flex items-center gap-3 px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} rounded-xl transition-all duration-300 hover:translate-x-2`}
               >
                 <span className="text-xl">🎥</span>
                 <span className="font-medium">{t.videos}</span>
               </a>
               <a
-                href="#study"
+                href="/AllStudyMaterials"
                 className={`flex items-center gap-3 px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} rounded-xl transition-all duration-300 hover:translate-x-2`}
               >
                 <span className="text-xl">📚</span>
