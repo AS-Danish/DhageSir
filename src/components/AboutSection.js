@@ -49,8 +49,8 @@ const AboutSection = () => {
                 <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
                   <iframe
                     className="absolute top-0 left-0 w-full h-full"
-                    src="https://www.youtube.com/embed/dQw4w9WgXcQ"
-                    title="Colonel Introduction Video"
+                    src="https://www.youtube.com/embed/D85gYG54AUk?si=aWGQgYngWQuPfHno"
+                    title="YouTube video player"
                     frameBorder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
