@@ -638,7 +638,7 @@ const AdminBooksPage = () => {
                       value={bookForm.title}
                       onChange={(e) => setBookForm({ ...bookForm, title: e.target.value })}
                       placeholder="Enter book title"
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
+                      className="text-black w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
                     />
                   </div>
 
@@ -650,7 +650,7 @@ const AdminBooksPage = () => {
                     <select
                       value={bookForm.book_category}
                       onChange={(e) => setBookForm({ ...bookForm, book_category: e.target.value })}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
+                      className="text-black w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
                     >
                       <option value="">Select a category</option>
                       {categories.map(cat => (
@@ -671,7 +671,7 @@ const AdminBooksPage = () => {
                         value={bookForm.book_url}
                         onChange={(e) => setBookForm({ ...bookForm, book_url: e.target.value })}
                         placeholder="https://example.com/purchase"
-                        className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
+                        className="text-black w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
                       />
                     </div>
                   </div>
@@ -686,7 +686,7 @@ const AdminBooksPage = () => {
                       onChange={(e) => setBookForm({ ...bookForm, description: e.target.value })}
                       placeholder="Enter book description"
                       rows={4}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors resize-none"
+                      className="text-black w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors resize-none"
                     />
                   </div>
 
@@ -736,7 +736,7 @@ const AdminBooksPage = () => {
                           }}
                           placeholder="Enter image URL"
                           disabled={!!imageFile}
-                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          className="text-black w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
                         />
                       </div>
                     </div>
@@ -791,7 +791,7 @@ const AdminBooksPage = () => {
                       <img
                         src={book.book_image_url || 'https://via.placeholder.com/400x500?text=No+Image'}
                         alt={book.title}
-                        className="w-full h-full object-cover"
+                        className="text-black w-full h-full object-cover"
                       />
                       <div className="absolute top-4 left-4">
                         <span className="px-3 py-1 bg-white backdrop-blur-sm text-gray-900 text-xs font-bold rounded-full shadow-xl">
@@ -896,7 +896,7 @@ const AdminBooksPage = () => {
                     value={categoryForm.name}
                     onChange={(e) => setCategoryForm({ name: e.target.value })}
                     placeholder="Enter category name"
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors mb-4"
+                    className="text-black w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors mb-4"
                   />
 
                   <div className="flex gap-4">
