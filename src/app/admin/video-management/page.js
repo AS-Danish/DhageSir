@@ -688,7 +688,7 @@ const AdminVideosPage = () => {
                   value={videoForm.title}
                   onChange={(e) => setVideoForm({ ...videoForm, title: e.target.value })}
                   placeholder="Enter video title"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
+                  className="text-black w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
                 />
               </div>
 
@@ -715,7 +715,7 @@ const AdminVideosPage = () => {
                     value={videoForm.video_url}
                     onChange={(e) => setVideoForm({ ...videoForm, video_url: e.target.value })}
                     placeholder="https://www.youtube.com/watch?v=..."
-                    className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
+                    className="text-black w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
                   />
                 </div>
               </div>
@@ -729,7 +729,7 @@ const AdminVideosPage = () => {
                   value={videoForm.thumbnail_url}
                   onChange={(e) => setVideoForm({ ...videoForm, thumbnail_url: e.target.value })}
                   placeholder="https://i.ytimg.com/vi/..."
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
+                  className="text-black w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
                 />
               </div>
 
@@ -742,7 +742,7 @@ const AdminVideosPage = () => {
                   onChange={(e) => setVideoForm({ ...videoForm, description: e.target.value })}
                   placeholder="Enter video description"
                   rows={4}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors resize-none"
+                  className="text-black w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors resize-none"
                 />
               </div>
             </div>
@@ -815,7 +815,7 @@ const AdminVideosPage = () => {
                           <img
                             src={video.thumbnail_url || 'https://via.placeholder.com/480x360?text=No+Thumbnail'}
                             alt={video.title}
-                            className="w-full h-full object-cover"
+                            className="text-black w-full h-full object-cover"
                           />
                           <div className="absolute top-4 right-4">
                             <span className="px-3 py-1 bg-orange-600 text-white text-xs font-bold rounded-full shadow-xl">
