@@ -638,7 +638,7 @@ const AdminArticlesPage = () => {
                       value={articleForm.title}
                       onChange={(e) => setArticleForm({ ...articleForm, title: e.target.value })}
                       placeholder="Enter article title"
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
+                      className="text-black w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
                     />
                   </div>
 
@@ -650,7 +650,7 @@ const AdminArticlesPage = () => {
                     <select
                       value={articleForm.article_category}
                       onChange={(e) => setArticleForm({ ...articleForm, article_category: e.target.value })}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
+                      className="text-black w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
                     >
                       <option value="">Select a category</option>
                       {categories.map(cat => (
@@ -671,7 +671,7 @@ const AdminArticlesPage = () => {
                         value={articleForm.article_link}
                         onChange={(e) => setArticleForm({ ...articleForm, article_link: e.target.value })}
                         placeholder="https://example.com/article"
-                        className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
+                        className="text-black w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
                       />
                     </div>
                   </div>
@@ -686,7 +686,7 @@ const AdminArticlesPage = () => {
                       onChange={(e) => setArticleForm({ ...articleForm, description: e.target.value })}
                       placeholder="Enter article description"
                       rows={4}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors resize-none"
+                      className="text-black w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors resize-none"
                     />
                   </div>
 
@@ -736,7 +736,7 @@ const AdminArticlesPage = () => {
                           }}
                           placeholder="Enter image URL"
                           disabled={!!imageFile}
-                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          className="text-black w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
                         />
                       </div>
                     </div>
@@ -896,7 +896,7 @@ const AdminArticlesPage = () => {
                     value={categoryForm.name}
                     onChange={(e) => setCategoryForm({ name: e.target.value })}
                     placeholder="Enter category name"
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors mb-4"
+                    className="text-black w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors mb-4"
                   />
 
                   <div className="flex gap-4">
