@@ -443,7 +443,7 @@ const AdminStudyMaterialsPage = () => {
                   value={materialForm.title}
                   onChange={(e) => setMaterialForm({ ...materialForm, title: e.target.value })}
                   placeholder="Enter material title (e.g., Chapter 1: Introduction to Physics)"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
+                  className="text-black w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
                 />
               </div>
 
