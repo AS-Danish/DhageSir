@@ -23,9 +23,9 @@ const Footer = () => {
   ];
 
   const resources = [
-    { name: 'Images', href: '#' },
-    { name: 'Videos', href: '#' },
-    { name: 'Study Materials', href: '#' },
+    { name: 'Images', href: '/AllImages' },
+    { name: 'Videos', href: '/AllVideos' },
+    { name: 'Study Materials', href: '/AllStudyMaterials' },
   ];
 
   const socialLinks = [
