@@ -91,7 +91,7 @@ const ContactSection = () => {
   ];
 
   const socialLinks = [
-    {
+    /*{
       name: "Facebook",
       url: "https://facebook.com/yourpage",
       bgColor: "bg-gradient-to-br from-blue-600 to-blue-700",
@@ -102,25 +102,31 @@ const ContactSection = () => {
       url: "https://twitter.com/yourhandle",
       bgColor: "bg-gradient-to-br from-sky-400 to-blue-600",
       hoverColor: "hover:from-sky-500 hover:to-blue-700",
-    },
+    },*/
     {
       name: "WhatsApp",
-      url: "https://wa.me/919876543210",
+      url: "https://wa.me/918698340084",
       bgColor: "bg-gradient-to-br from-green-500 to-emerald-600",
       hoverColor: "hover:from-green-600 hover:to-emerald-700",
     },
     {
-      name: "YouTube",
-      url: "https://youtube.com/@channel1",
+      name: "YouTube 1",
+      url: "https://www.youtube.com/@TheMentorsForum",
       bgColor: "bg-gradient-to-br from-red-600 to-red-700",
       hoverColor: "hover:from-red-700 hover:to-red-800",
     },
     {
+      name: "YouTube 2",
+      url: "https://www.youtube.com/@drsatishdhage",
+      bgColor: "bg-gradient-to-br from-red-600 to-red-700",
+      hoverColor: "hover:from-red-700 hover:to-red-800",
+    },
+    /*{
       name: "LinkedIn",
       url: "https://linkedin.com/company/yourcompany",
       bgColor: "bg-gradient-to-br from-blue-700 to-blue-800",
       hoverColor: "hover:from-blue-800 hover:to-blue-900",
-    }
+    }*/
   ];
 
   return (
@@ -288,24 +294,6 @@ const ContactSection = () => {
                 {social.name}
               </a>
             ))}
-          </div>
-
-          {/* Quick Action Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8 pt-8 border-t border-gray-200">
-            <a
-              href="https://wa.me/919876543210"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all"
-            >
-              Chat on WhatsApp
-            </a>
-            <a
-              href="tel:+919876543210"
-              className={`inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r ${theme.gradients.primary} hover:from-orange-600 hover:to-orange-700 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all`}
-            >
-              Call Now
-            </a>
           </div>
         </div>
       </div>
