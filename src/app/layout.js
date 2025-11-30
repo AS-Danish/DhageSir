@@ -6,7 +6,7 @@ import { AuthProvider } from '@/context/AuthContext';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  metadataBase: new URL('https://drsatishdhage.com'),
+  metadataBase: new URL('https://satishdhage.com'),
   title: {
     default: 'Mentors Forum - Transform Your Future | Dr. Satish Dhage | SatishDhage',
     template: '%s | Mentors Forum'
@@ -29,12 +29,12 @@ export const metadata = {
     'UPSC mentoring',
     'Defense services preparation'
   ],
-  authors: [{ name: 'Dr. Satish Dhage', url: 'https://drsatishdhage.com' }],
+  authors: [{ name: 'Dr. Satish Dhage', url: 'https://satishdhage.com' }],
   creator: 'Dr. Satish Dhage',
   publisher: 'Mentors Forum',
   openGraph: {
     type: 'website',
-    url: 'https://drsatishdhage.com',
+    url: 'https://satishdhage.com',
     title: 'Mentors Forum | Transform Your Future | Dr Satish Dhage',
     description:
       'India’s premier mentorship ecosystem for Defense Services & SSB Interview preparation by Dr. Satish Dhage.',
@@ -62,7 +62,7 @@ export const metadata = {
     googleBot: { index: true, follow: true }
   },
   alternates: {
-    canonical: 'https://drsatishdhage.com'
+    canonical: 'https://satishdhage.com'
   }
 };
 
@@ -77,7 +77,7 @@ export default function RootLayout({ children }) {
               '@context': 'https://schema.org',
               '@type': 'Organization',
               name: 'Mentors Forum',
-              url: 'https://drsatishdhage.com.in',
+              url: 'https://satishdhage.com.in',
               founder: {
                 '@type': 'Person',
                 name: 'Dr. Satish Dhage',
