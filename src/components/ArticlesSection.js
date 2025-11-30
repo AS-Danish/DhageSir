@@ -182,7 +182,7 @@ const ArticlesSection = () => {
           
           {/* View All Button - Desktop */}
           <a 
-            href="/articles"
+            href="/AllArticles"
             className={`hidden md:inline-flex items-center gap-2 ${getButton('primary')} group`}
           >
             <Library className="w-5 h-5" />

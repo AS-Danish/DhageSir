@@ -92,12 +92,6 @@ const ContactSection = () => {
 
   const socialLinks = [
     {
-      name: "Instagram",
-      url: "https://instagram.com/yourprofile",
-      bgColor: "bg-gradient-to-br from-pink-500 to-purple-600",
-      hoverColor: "hover:from-pink-600 hover:to-purple-700",
-    },
-    {
       name: "Facebook",
       url: "https://facebook.com/yourpage",
       bgColor: "bg-gradient-to-br from-blue-600 to-blue-700",
