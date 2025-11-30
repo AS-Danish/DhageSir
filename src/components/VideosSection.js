@@ -120,6 +120,21 @@ const VideosSection = () => {
     return 'General';
   };
 
+  // Extract categories and channels from videos
+  const extractCategoriesAndChannels = (videosList) => {
+    // Extract unique categories
+    const uniqueCategories = ['All', ...new Set(videosList.map(v => v.category))];
+    
+    // Extract unique channels
+    const uniqueChannels = Array.from(
+      new Map(
+        videosList.map(v => [v.channel_id, { name: v.channel, channel_id: v.channel_id }])
+      ).values()
+    );
+    
+    return { categories: uniqueCategories, channels: uniqueChannels };
+  };
+
   // Load videos from Firebase
   const loadVideos = async (useCache = true) => {
     try {
@@ -130,14 +145,21 @@ const VideosSection = () => {
       if (useCache) {
         const cached = getCachedData();
         if (cached) {
+          console.log('📦 Loading videos from cache');
           setVideos(cached.videos);
           setChannels(cached.channels);
+          
+          // CRITICAL FIX: Extract and set categories from cached videos
+          const { categories: extractedCategories } = extractCategoriesAndChannels(cached.videos);
+          setCategories(extractedCategories);
+          
           setLoading(false);
           return;
         }
       }
 
       // Fetch from Firebase
+      console.log('🔄 Fetching videos from Firebase');
       const q = query(
         collection(db, "videos"),
         orderBy("created_at", "desc")
@@ -162,20 +184,21 @@ const VideosSection = () => {
         };
       });
 
-      // Extract unique categories
-      const uniqueCategories = ['All', ...new Set(fetchedVideos.map(v => v.category))];
-      setCategories(uniqueCategories);
-
-      // Extract unique channels
-      const uniqueChannels = Array.from(
-        new Map(
-          fetchedVideos.map(v => [v.channel_id, { name: v.channel, channel_id: v.channel_id }])
-        ).values()
-      );
-      setChannels(uniqueChannels);
-
+      // Extract categories and channels
+      const { categories: extractedCategories, channels: extractedChannels } = extractCategoriesAndChannels(fetchedVideos);
+      
+      setCategories(extractedCategories);
+      setChannels(extractedChannels);
       setVideos(fetchedVideos);
-      setCachedData({ videos: fetchedVideos, channels: uniqueChannels });
+      
+      // Cache the data with categories and channels
+      setCachedData({ 
+        videos: fetchedVideos, 
+        channels: extractedChannels,
+        categories: extractedCategories // Also cache categories for consistency
+      });
+      
+      console.log('✅ Videos loaded and cached successfully');
     } catch (error) {
       console.error('Error loading videos:', error);
       setError('Failed to load videos. Please try again later.');
@@ -253,8 +276,8 @@ const VideosSection = () => {
         {/* Content */}
         {!loading && !error && (
           <>
-            {/* Category Filters */}
-            {videos.length > 0 && (
+            {/* Category Filters - ALWAYS SHOW when videos exist */}
+            {videos.length > 0 && categories.length > 1 && (
               <div className="mb-10">
                 <div className="flex items-center gap-3 mb-4">
                   <Filter className={`w-5 h-5 ${theme.text.secondary}`} />
