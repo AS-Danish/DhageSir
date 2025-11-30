@@ -538,7 +538,7 @@ const AdminArticlesPage = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Loading Overlay */}
       {loading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="bg-white rounded-2xl p-8 flex flex-col items-center">
             <Loader className="w-12 h-12 text-orange-500 animate-spin mb-4" />
             <p className="text-gray-900 font-bold">Processing...</p>

@@ -26,7 +26,7 @@ const heroSlides = [
     title: "One-on-One Mentorship",
     subtitle: "Personalized Success Path",
     description: "Get direct guidance from experienced mentors who have walked the path to success",
-    image: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=1200&h=800&fit=crop",
+    image: "army award.jpg",
     cta: "Meet Mentors",
     stats: { sessions: "10K+", rating: "4.9★" }
   }
