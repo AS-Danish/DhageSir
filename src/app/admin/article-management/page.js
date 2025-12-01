@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Plus, Edit2, Trash2, X, Save, Upload, Link, FolderPlus, Tag, Loader } from 'lucide-react';
 import { db, storage } from '../../../firebase/firebaseConfig';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, setDoc, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // Theme configuration
@@ -54,59 +54,21 @@ const AdminArticlesPage = () => {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
 
-  // Helper to invalidate cache
-  const invalidateCache = (type) => {
-    if (type === 'articles' || type === 'all') {
-      localStorage.removeItem('articles_cache');
-      localStorage.removeItem('articles_cache_timestamp');
-    }
-    if (type === 'categories' || type === 'all') {
-      localStorage.removeItem('categories_cache');
-      localStorage.removeItem('categories_cache_timestamp');
-    }
-  };
-
-  // Fetch and cache categories
-  const fetchAndCacheCategories = async () => {
+  // Load categories from Firestore with caching
+  const loadCategories = async () => {
+  try {
     const q = query(collection(db, "categories"), orderBy("created_at", "desc"));
     const querySnapshot = await getDocs(q);
     const categoriesData = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
-    
     setCategories(categoriesData);
-    
-    // Cache the data
-    localStorage.setItem('categories_cache', JSON.stringify(categoriesData));
-    localStorage.setItem('categories_cache_timestamp', Date.now().toString());
-  };
-
-  // Load categories from Firestore with caching
-  const loadCategories = async () => {
-    try {
-      // Try to load from cache first
-      const cachedCategories = localStorage.getItem('categories_cache');
-      const cacheTimestamp = localStorage.getItem('categories_cache_timestamp');
-      
-      // Use cache if it's less than 5 minutes old
-      if (cachedCategories && cacheTimestamp) {
-        const cacheAge = Date.now() - parseInt(cacheTimestamp);
-        if (cacheAge < 5 * 60 * 1000) { // 5 minutes
-          setCategories(JSON.parse(cachedCategories));
-          // Still fetch in background to update
-          fetchAndCacheCategories();
-          return;
-        }
-      }
-      
-      // Fetch fresh data
-      await fetchAndCacheCategories();
-    } catch (error) {
-      console.error('Error loading categories:', error);
-      alert('Failed to load categories: ' + error.message);
-    }
-  };
+  } catch (error) {
+    console.error('Error loading categories:', error);
+    alert('Failed to load categories: ' + error.message);
+  }
+};
 
   // Fetch and cache articles
   const fetchAndCacheArticles = async () => {
@@ -181,6 +143,44 @@ const AdminArticlesPage = () => {
     }
   };
 
+  // Update news ticker collection (single document, articles only)
+const updateNewsTicker = async (newArticle) => {
+  try {
+    const tickerDocRef = doc(db, "news_ticker", "latest");
+    const tickerSnapshot = await getDoc(tickerDocRef);
+    
+    let tickerData = {
+      latest_article_title: '',
+      latest_article_url: '',
+      second_article_title: '',
+      second_article_url: '',
+      latest_book_title: '',
+      latest_book_url: '',
+      second_book_title: '',
+      second_book_url: '',
+    };
+    
+    // Get existing data if document exists
+    if (tickerSnapshot.exists()) {
+      tickerData = { ...tickerData, ...tickerSnapshot.data() };
+    }
+    
+    // Move current latest article to second position
+    tickerData.second_article_title = tickerData.latest_article_title;
+    tickerData.second_article_url = tickerData.latest_article_url;
+    
+    // Set new article as latest
+    tickerData.latest_article_title = newArticle.title;
+    tickerData.latest_article_url = newArticle.article_link || '';
+    
+    // Save to Firestore (book fields remain untouched)
+    await setDoc(tickerDocRef, tickerData);
+    
+  } catch (error) {
+    console.error('Error updating news ticker:', error);
+  }
+};
+
   // Add article to Firestore
   const handleAddArticle = async () => {
     if (!articleForm.title || !articleForm.description || !articleForm.article_category) {
@@ -215,9 +215,10 @@ const AdminArticlesPage = () => {
 
       const docRef = await addDoc(collection(db, "articles"), articleData);
       const newArticle = { id: docRef.id, ...articleData };
+
+      await updateNewsTicker(newArticle);
       
       setArticles([newArticle, ...articles]);
-      invalidateCache('articles');
 
       resetArticleForm();
       setShowAddArticle(false);
@@ -257,11 +258,15 @@ const AdminArticlesPage = () => {
       };
 
       await updateDoc(doc(db, "articles", editingArticle.id), articleData);
+
+      const updatedArticle = { id: editingArticle.id, ...editingArticle, ...articleData };
+
+      // ADD THIS LINE:
+      await updateNewsTicker(updatedArticle);
       
       setArticles(articles.map(article => 
         article.id === editingArticle.id ? { ...article, ...articleData } : article
       ));
-      invalidateCache('articles');
 
       resetArticleForm();
       setEditingArticle(null);
@@ -286,7 +291,6 @@ const AdminArticlesPage = () => {
       await deleteDoc(doc(db, "articles", id));
       
       setArticles(articles.filter(article => article.id !== id));
-      invalidateCache('articles');
       
       alert('Article deleted successfully!');
     } catch (error) {
@@ -326,7 +330,6 @@ const AdminArticlesPage = () => {
       const newCategory = { id: docRef.id, ...categoryData };
       
       setCategories([newCategory, ...categories]);
-      invalidateCache('categories');
 
       resetCategoryForm();
       setShowAddCategory(false);
@@ -390,7 +393,6 @@ const AdminArticlesPage = () => {
           ? { ...article, article_category: newCategoryName } 
           : article
       ));
-      invalidateCache('all');
 
       resetCategoryForm();
       setEditingCategory(null);
@@ -425,7 +427,6 @@ const AdminArticlesPage = () => {
       await deleteDoc(doc(db, "categories", id));
       
       setCategories(categories.filter(cat => cat.id !== id));
-      invalidateCache('categories');
       
       alert('Category deleted successfully!');
     } catch (error) {
