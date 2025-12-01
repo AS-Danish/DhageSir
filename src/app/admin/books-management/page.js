@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { BookOpen, Plus, Edit2, Trash2, X, Save, Upload, Link, FolderPlus, Tag, Loader } from 'lucide-react';
 import { db, storage } from '../../../firebase/firebaseConfig';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, setDoc, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // Theme configuration
@@ -181,6 +181,45 @@ const AdminBooksPage = () => {
     }
   };
 
+// Update news ticker collection (single document, books only)
+const updateNewsTicker = async (newBook) => {
+  try {
+    const tickerDocRef = doc(db, "news_ticker", "latest");
+    const tickerSnapshot = await getDoc(tickerDocRef);
+
+    let tickerData = {
+      latest_article_title: '',
+      latest_article_url: '',
+      second_article_title: '',
+      second_article_url: '',
+      latest_book_title: '',
+      latest_book_url: '',
+      second_book_title: '',
+      second_book_url: '',
+    };
+
+    // Load existing data
+    if (tickerSnapshot.exists()) {
+      tickerData = { ...tickerData, ...tickerSnapshot.data() };
+    }
+
+    // Move current latest book to second position
+    tickerData.second_book_title = tickerData.latest_book_title;
+    tickerData.second_book_url = tickerData.latest_book_url;
+
+    // Set new book as latest
+    tickerData.latest_book_title = newBook.title;
+    tickerData.latest_book_url = newBook.book_url || '';
+
+    // Save updated record
+    await setDoc(tickerDocRef, tickerData);
+
+  } catch (error) {
+    console.error("Error updating news ticker (books):", error);
+  }
+};
+
+
   // Add book to Firestore
   const handleAddBook = async () => {
     if (!bookForm.title || !bookForm.description || !bookForm.book_category) {
@@ -215,6 +254,9 @@ const AdminBooksPage = () => {
 
       const docRef = await addDoc(collection(db, "books"), bookData);
       const newBook = { id: docRef.id, ...bookData };
+
+      // ADD THIS:
+      await updateNewsTicker(newBook);
       
       setBooks([newBook, ...books]);
       invalidateCache('books');
@@ -257,6 +299,11 @@ const AdminBooksPage = () => {
       };
 
       await updateDoc(doc(db, "books", editingBook.id), bookData);
+
+      const updatedBook = { id: editingBook.id, ...editingBook, ...bookData };
+
+      // ADD THIS:
+      await updateNewsTicker(updatedBook);
       
       setBooks(books.map(book => 
         book.id === editingBook.id ? { ...book, ...bookData } : book
@@ -538,7 +585,7 @@ const AdminBooksPage = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Loading Overlay */}
       {loading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm-50 z-50 flex items-center justify-center">
           <div className="bg-white rounded-2xl p-8 flex flex-col items-center">
             <Loader className="w-12 h-12 text-orange-500 animate-spin mb-4" />
             <p className="text-gray-900 font-bold">Processing...</p>
