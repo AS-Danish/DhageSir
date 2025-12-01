@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Video, Edit2, Trash2, X, Save, RefreshCw, Youtube, Loader, Link, AlertCircle, ChevronDown } from 'lucide-react';
 import { db } from '../../../firebase/firebaseConfig';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, limit, startAfter, where, enableIndexedDbPersistence } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, limit, startAfter, where, getDoc, setDoc } from 'firebase/firestore';
 
 // 🎯 HARDCODED CHANNELS
 const HARDCODED_CHANNELS = [
@@ -108,7 +108,6 @@ const AdminVideosPage = () => {
   };
 
   // Parse YouTube RSS
-  // Parse YouTube RSS
   const parseYouTubeRSS = async (channelId, retries = 3) => {
     const RSS_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
     
@@ -210,6 +209,48 @@ const AdminVideosPage = () => {
 
     return [];
   };
+
+  // Update news ticker collection (single document, videos only)
+const updateNewsTicker = async (newVideo) => {
+  try {
+    const tickerDocRef = doc(db, "news_ticker", "latest");
+    const tickerSnapshot = await getDoc(tickerDocRef);
+
+    let tickerData = {
+      latest_article_title: '',
+      latest_article_url: '',
+      second_article_title: '',
+      second_article_url: '',
+      latest_book_title: '',
+      latest_book_url: '',
+      second_book_title: '',
+      second_book_url: '',
+      latest_video_title: '',
+      latest_video_url: '',
+      second_video_title: '',
+      second_video_url: '',
+    };
+
+    // Load existing data
+    if (tickerSnapshot.exists()) {
+      tickerData = { ...tickerData, ...tickerSnapshot.data() };
+    }
+
+    // Move current latest video to second position
+    tickerData.second_video_title = tickerData.latest_video_title;
+    tickerData.second_video_url = tickerData.latest_video_url;
+
+    // Set new video as latest
+    tickerData.latest_video_title = newVideo.title;
+    tickerData.latest_video_url = newVideo.video_url || '';
+
+    // Save updated record
+    await setDoc(tickerDocRef, tickerData);
+
+  } catch (error) {
+    console.error("Error updating news ticker (videos):", error);
+  }
+};
 
   // Get total count for a channel
   const getChannelVideoCount = async (channelId) => {
@@ -369,7 +410,9 @@ const AdminVideosPage = () => {
                 created_at: new Date().toISOString(),
               };
 
-              await addDoc(collection(db, "videos"), videoData);
+              const docRef = await addDoc(collection(db, "videos"), videoData);
+              const newVideo = { id: docRef.id, ...videoData };
+              await updateNewsTicker(newVideo);
               existingUrls.add(video.video_url);
               existingVideoIds.add(video.video_id);
               totalAdded++;
@@ -466,6 +509,9 @@ const AdminVideosPage = () => {
       };
 
       await updateDoc(doc(db, "videos", editingVideo.id), videoData);
+
+      const updatedVideo = { id: editingVideo.id, ...editingVideo, ...videoData };
+      await updateNewsTicker(updatedVideo);
 
       // Update local state
       const channelId = editingVideo.channel_id;
