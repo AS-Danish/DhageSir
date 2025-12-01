@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 
 const NewsTicker = () => {
@@ -7,98 +7,101 @@ const NewsTicker = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchLatestContent();
+    fetchTickerData();
   }, []);
 
-  const fetchLatestContent = async () => {
+  const fetchTickerData = async () => {
     try {
-      // Fetch from all collections in parallel
-      const [articles, videos, books, podcasts] = await Promise.all([
-        fetchFromFirebase('articles', 2),
-        fetchFromFirebase('videos', 3),
-        fetchFromFirebase('books', 2),
-        fetchFromFirebase('podcasts', 2)
-      ]);
+      // Try to load from cache first
+      const cachedData = getCachedData('news_ticker_data', 5 * 60 * 1000); // 5 min cache
+      
+      if (cachedData) {
+        setNewsItems(cachedData);
+        setLoading(false);
+        // Still fetch in background to update
+        fetchAndCacheTickerData();
+        return;
+      }
 
-      // Combine all items with their respective types and icons
-      const allItems = [
-        ...articles.map(item => ({ 
-          ...item, 
-          type: 'article', 
-          icon: '📰',
-          link: `/articles/${item.id}`, // Adjust the link pattern as needed
-          timestamp: item.created_at ? new Date(item.created_at).getTime() : 0
-        })),
-        ...videos.map(item => ({ 
-          ...item, 
-          type: 'video', 
-          icon: '🎥',
-          link: item.video_url || `/videos/${item.id}`,
-          timestamp: item.created_at ? new Date(item.created_at).getTime() : 0
-        })),
-        ...books.map(item => ({ 
-          ...item, 
-          type: 'book', 
-          icon: '📚',
-          link: item.book_url || `/books/${item.id}`,
-          timestamp: item.created_at ? new Date(item.created_at).getTime() : 0
-        })),
-        ...podcasts.map(item => ({ 
-          ...item, 
-          type: 'podcast', 
-          icon: '🎙️',
-          link: item.youtube_url || `/podcasts/${item.id}`,
-          timestamp: item.created_at ? new Date(item.created_at).getTime() : 0
-        }))
-      ];
-
-      // Sort by timestamp (most recent first) and take top 7
-      const sortedItems = allItems
-        .sort((a, b) => b.timestamp - a.timestamp)
-        .slice(0, 7);
-
-      // Format for ticker - only show title and link
-      const formattedNews = sortedItems.map(item => ({
-        text: `${item.icon} ${item.title}`,
-        link: item.link
-      }));
-
-      setNewsItems(formattedNews);
-      setLoading(false);
+      // Fetch fresh data
+      await fetchAndCacheTickerData();
     } catch (error) {
-      console.error('Error fetching ticker content:', error);
-      // Fallback to static content
-      setNewsItems([
-        { text: "🎉 Welcome to our platform!", link: "#" },
-        { text: "📚 Check out our latest content", link: "#" }
-      ]);
+      console.error('Error fetching ticker data:', error);
+      setNewsItems([]);
       setLoading(false);
     }
   };
 
-  const fetchFromFirebase = async (collectionName, limitCount) => {
+  const fetchAndCacheTickerData = async () => {
     try {
-      // Create query to fetch latest items
-      const q = query(
-        collection(db, collectionName),
-        orderBy('created_at', 'desc'),
-        limit(limitCount)
-      );
+      const tickerDocRef = doc(db, "news_ticker", "latest");
+      const tickerSnapshot = await getDoc(tickerDocRef);
 
-      const querySnapshot = await getDocs(q);
+      if (!tickerSnapshot.exists()) {
+        setNewsItems([]);
+        setLoading(false);
+        return;
+      }
+
+      const data = tickerSnapshot.data();
       const items = [];
 
-      querySnapshot.forEach((doc) => {
-        items.push({
-          id: doc.id,
-          ...doc.data()
-        });
-      });
+      // Helper to add items if both title and URL exist
+      const addItem = (title, url, icon) => {
+        if (title && title.trim() !== '' && url && url.trim() !== '') {
+          items.push({
+            text: `${icon} ${title}`,
+            link: url
+          });
+        }
+      };
 
-      return items;
+      // Add articles (latest first, then second)
+      addItem(data.latest_article_title, data.latest_article_url, '📰');
+      addItem(data.second_article_title, data.second_article_url, '📰');
+
+      // Add books
+      addItem(data.latest_book_title, data.latest_book_url, '📚');
+      addItem(data.second_book_title, data.second_book_url, '📚');
+
+      // Add videos
+      addItem(data.latest_video_title, data.latest_video_url, '🎥');
+      addItem(data.second_video_title, data.second_video_url, '🎥');
+
+      setNewsItems(items);
+      setCachedData('news_ticker_data', items);
+      setLoading(false);
     } catch (error) {
-      console.error(`Error fetching ${collectionName}:`, error);
-      return [];
+      console.error('Error fetching ticker data:', error);
+      setNewsItems([]);
+      setLoading(false);
+    }
+  };
+
+  // Cache helpers
+  const getCachedData = (key, maxAge) => {
+    try {
+      const cached = localStorage.getItem(key);
+      const timestamp = localStorage.getItem(`${key}_timestamp`);
+
+      if (cached && timestamp) {
+        const age = Date.now() - parseInt(timestamp);
+        if (age < maxAge) {
+          return JSON.parse(cached);
+        }
+      }
+    } catch (error) {
+      console.error('Cache read error:', error);
+    }
+    return null;
+  };
+
+  const setCachedData = (key, data) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+      localStorage.setItem(`${key}_timestamp`, Date.now().toString());
+    } catch (error) {
+      console.error('Cache write error:', error);
     }
   };
 
@@ -120,46 +123,22 @@ const NewsTicker = () => {
     <div className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white py-4 overflow-hidden shadow-lg relative">
       <div className="flex items-center">
         {/* Breaking News Badge */}
-        <div className="px-6 font-bold text-sm uppercase tracking-wider flex-shrink-0 bg-red-600 py-2 rounded-r-full flex items-center gap-2 relative z-10">
+        <div className="px-4 md:px-6 font-bold text-xs md:text-sm uppercase tracking-wider flex-shrink-0 bg-red-600 py-2 rounded-r-full flex items-center gap-2 relative z-10">
           <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-          Latest Updates
+          <span className="hidden sm:inline">Latest Updates</span>
+          <span className="sm:hidden">News</span>
         </div>
         
         {/* Scrolling News Container */}
-        <div className="flex-1 overflow-hidden ml-4 relative">
-          <div className="flex animate-scroll-infinite whitespace-nowrap">
-            {/* First set of news items */}
-            {newsItems.map((news, index) => (
+        <div className="flex-1 overflow-hidden ml-2 md:ml-4 relative">
+          <div className="ticker-wrapper">
+            {newsItems.concat(newsItems).concat(newsItems).concat(newsItems).concat(newsItems).map((news, index) => (
               <a 
-                key={`first-${index}`}
+                key={index}
                 href={news.link}
                 target={news.link.startsWith('http') ? "_blank" : "_self"}
                 rel={news.link.startsWith('http') ? "noopener noreferrer" : ""}
-                className="mx-12 text-base font-medium inline-block hover:underline hover:scale-105 transition-transform cursor-pointer"
-              >
-                {news.text}
-              </a>
-            ))}
-            {/* Duplicate set for seamless loop */}
-            {newsItems.map((news, index) => (
-              <a 
-                key={`second-${index}`}
-                href={news.link}
-                target={news.link.startsWith('http') ? "_blank" : "_self"}
-                rel={news.link.startsWith('http') ? "noopener noreferrer" : ""}
-                className="mx-12 text-base font-medium inline-block hover:underline hover:scale-105 transition-transform cursor-pointer"
-              >
-                {news.text}
-              </a>
-            ))}
-            {/* Third set to ensure no gaps */}
-            {newsItems.map((news, index) => (
-              <a 
-                key={`third-${index}`}
-                href={news.link}
-                target={news.link.startsWith('http') ? "_blank" : "_self"}
-                rel={news.link.startsWith('http') ? "noopener noreferrer" : ""}
-                className="mx-12 text-base font-medium inline-block hover:underline hover:scale-105 transition-transform cursor-pointer"
+                className="ticker-item"
               >
                 {news.text}
               </a>
@@ -169,25 +148,69 @@ const NewsTicker = () => {
       </div>
 
       <style jsx>{`
-        @keyframes scroll-infinite {
-          0% {
+        .ticker-wrapper {
+          display: inline-flex;
+          white-space: nowrap;
+          will-change: transform;
+          animation: scroll-ticker 60s linear infinite;
+        }
+
+        .ticker-item {
+          display: inline-block;
+          padding: 0 3rem;
+          font-size: 1rem;
+          font-weight: 500;
+          text-decoration: none;
+          color: white;
+          transition: all 0.2s ease;
+          flex-shrink: 0;
+          line-height: 1.5;
+        }
+
+        .ticker-item:hover {
+          text-decoration: underline;
+          transform: scale(1.05);
+        }
+
+        .ticker-wrapper:hover {
+          animation-play-state: paused;
+        }
+
+        @keyframes scroll-ticker {
+          from {
             transform: translateX(0);
           }
-          100% {
-            transform: translateX(-33.333%);
+          to {
+            transform: translateX(-50%);
           }
         }
 
-        .animate-scroll-infinite {
-          animation: scroll-infinite 25s linear infinite;
+        /* Mobile specific styles */
+        @media (max-width: 768px) {
+          .ticker-wrapper {
+            animation: scroll-ticker 50s linear infinite;
+          }
+
+          .ticker-item {
+            padding: 0 2.5rem;
+            font-size: 0.95rem;
+          }
         }
 
-        .animate-scroll-infinite:hover {
-          animation-play-state: paused;
+        /* Extra small mobile */
+        @media (max-width: 480px) {
+          .ticker-wrapper {
+            animation: scroll-ticker 60s linear infinite;
+          }
+
+          .ticker-item {
+            padding: 0 2rem;
+            font-size: 0.9rem;
+          }
         }
       `}</style>
     </div>
   );
 };
 
-export default NewsTicker;  
+export default NewsTicker;
