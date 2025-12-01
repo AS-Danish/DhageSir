@@ -91,6 +91,15 @@ const ImprovedNavbar = () => {
               <span className={`absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r ${theme.gradients.primary} group-hover:w-full transition-all duration-300`}></span>
             </a>
 
+            {/* Podcast Link */}
+            <a
+              href="/AllPodcasts"
+              className={`relative px-4 py-2 ${theme.text.secondary} hover:${theme.text.brand} font-semibold transition-colors duration-300 group`}
+            >
+              {t.podcast || 'Podcast'}
+              <span className={`absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r ${theme.gradients.primary} group-hover:w-full transition-all duration-300`}></span>
+            </a>
+
             {/* Download Dropdown */}
             <div
               className="relative"
@@ -206,9 +215,9 @@ const ImprovedNavbar = () => {
 
         {/* Mobile Menu */}
         <div
-          className={`lg:hidden mobile-menu overflow-hidden transition-all duration-500 ease-in-out ${mobileMenuOpen
-            ? 'max-h-screen opacity-100 mt-4'
-            : 'max-h-0 opacity-0'
+          className={`lg:hidden mobile-menu transition-all duration-500 ease-in-out ${mobileMenuOpen
+            ? 'max-h-[80vh] opacity-100 mt-4 overflow-y-auto'
+            : 'max-h-0 opacity-0 overflow-hidden'
             }`}
         >
           <div className={`pb-4 ${theme.borders.light} border-t pt-4 space-y-1`}>
@@ -238,6 +247,14 @@ const ImprovedNavbar = () => {
               className={`block px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} rounded-xl font-medium transition-all duration-300 hover:translate-x-2`}
             >
               {t.mentor}
+            </a>
+
+            {/* Mobile Podcast Link */}
+            <a
+              href="/AllPodcasts"
+              className={`block px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} rounded-xl font-medium transition-all duration-300 hover:translate-x-2`}
+            >
+              {t.podcast || 'Podcast'}
             </a>
 
             {/* Mobile Download Section */}
@@ -280,9 +297,9 @@ const ImprovedNavbar = () => {
                   : `${theme.text.secondary} hover:${theme.backgrounds.light}`
                   }`}
               >
-                <span className="text-2xl">🇬🇧</span>
-                <span>English</span>
-                {language === 'en' && <span className={`ml-auto ${theme.text.brand}`}>✓</span>}
+                <span className="text-2xl flex-shrink-0">🇬🇧</span>
+                <span className="flex-1 text-left">English</span>
+                {language === 'en' && <span className={`${theme.text.brand} flex-shrink-0`}>✓</span>}
               </button>
 
               <button
@@ -292,9 +309,9 @@ const ImprovedNavbar = () => {
                   : `${theme.text.secondary} hover:${theme.backgrounds.light}`
                   }`}
               >
-                <span className="text-2xl">🇮🇳</span>
-                <span>मराठी</span>
-                {language === 'mr' && <span className={`ml-auto ${theme.text.brand}`}>✓</span>}
+                <span className="text-2xl flex-shrink-0">🇮🇳</span>
+                <span className="flex-1 text-left">मराठी</span>
+                {language === 'mr' && <span className={`${theme.text.brand} flex-shrink-0`}>✓</span>}
               </button>
             </div>
           </div>
