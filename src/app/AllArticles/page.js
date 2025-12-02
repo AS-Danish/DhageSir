@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Search, Loader, ChevronDown, ExternalLink, Tag, Calendar } from 'lucide-react';
 import { db } from '../../firebase/firebaseConfig';
 import { collection, getDocs, query, orderBy, limit, startAfter } from 'firebase/firestore';
+import { useSearchParams } from 'next/navigation'; // Add this import
 
 // Theme configuration
 const theme = {
@@ -33,8 +34,12 @@ const getButton = (variant = 'primary') => {
 const ARTICLES_PER_PAGE = 9;
 
 const AllArticlesPage = () => {
+  // Get URL parameters
+  const searchParams = useSearchParams();
+  const urlCategory = searchParams?.get('category');
+  
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState(urlCategory || 'all');
   const [articles, setArticles] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +48,13 @@ const AllArticlesPage = () => {
   const [lastDoc, setLastDoc] = useState(null);
   const [hasMore, setHasMore] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
+
+  // Update selected category when URL changes
+  useEffect(() => {
+    if (urlCategory && urlCategory !== selectedCategory) {
+      setSelectedCategory(urlCategory);
+    }
+  }, [urlCategory]);
 
   // Fetch initial articles from Firebase with caching
   const fetchArticlesFromFirebase = async () => {
@@ -291,6 +303,14 @@ const AllArticlesPage = () => {
             <p className="text-xl text-orange-100 max-w-2xl mx-auto">
               Explore our collection of {totalCount} articles across various topics
             </p>
+            {urlCategory && urlCategory !== 'all' && (
+              <div className="mt-4">
+                <span className="inline-flex items-center gap-2 px-6 py-3 bg-white/20 backdrop-blur-sm text-white rounded-full font-bold">
+                  <Tag className="w-5 h-5" />
+                  Filtered by: {urlCategory}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </section>
