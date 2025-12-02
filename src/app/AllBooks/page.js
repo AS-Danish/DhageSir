@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { BookOpen, Search, ShoppingBag, ArrowRight, Loader } from 'lucide-react';
 import { db } from '../../firebase/firebaseConfig';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { useSearchParams } from 'next/navigation';
 
 // Theme configuration
 const theme = {
@@ -35,12 +36,24 @@ const getButton = (variant = 'primary') => {
 };
 
 const BooksPage = () => {
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const searchParams = useSearchParams();
+  const defaultCategory = searchParams.get('category') || 'All';
+
+
+  const [selectedCategory, setSelectedCategory] = useState(defaultCategory);
   const [searchQuery, setSearchQuery] = useState('');
   const [books, setBooks] = useState([]);
   const [categories, setCategories] = useState(['All']);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+  fetchBooksFromFirebase();
+  const urlCategory = searchParams.get('category');
+  if (urlCategory) {
+    setSelectedCategory(urlCategory);
+  }
+}, [searchParams]);
 
   // Fetch books from Firebase with caching
   const fetchBooksFromFirebase = async () => {
@@ -125,9 +138,6 @@ const BooksPage = () => {
     }
   };
 
-  useEffect(() => {
-    fetchBooksFromFirebase();
-  }, []);
 
   const filteredBooks = books.filter(book => {
     const matchesCategory = selectedCategory === 'All' || book.book_category === selectedCategory;
