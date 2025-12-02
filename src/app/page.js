@@ -16,8 +16,8 @@ export default function Home() {
       <main id="home">
         <HeroSection/>
         <NewsTicker/>
-        <StatsSection/>
         <AboutSection/>
+        <StatsSection/>
         <BooksSection/>
         <VideosSection/>
         <PodcastsSection />
