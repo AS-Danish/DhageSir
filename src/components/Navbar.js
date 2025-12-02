@@ -2,14 +2,99 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, Menu, X, Globe } from 'lucide-react';
 import { theme } from '../app/theme/theme';
-import { useLanguage } from '../context/LanguageContext'; // Import the hook
+import { useLanguage } from '../context/LanguageContext';
 
 const ImprovedNavbar = () => {
-  const { language, setLanguage, t } = useLanguage(); // Use the language context
+  const { language, setLanguage, t } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [downloadOpen, setDownloadOpen] = useState(false);
+  const [militaryOpen, setMilitaryOpen] = useState(false);
+  const [mentorOpen, setMentorOpen] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  // Navigation structure - Easy to modify!
+  const navLinks = [
+    {
+      label: t.home,
+      href: "/",
+      type: "link"
+    },
+    {
+      label: t.about,
+      href: "/#about",
+      type: "link"
+    },
+    {
+      label: t.military,
+      type: "dropdown",
+      state: militaryOpen,
+      setState: setMilitaryOpen,
+      items: [
+        {
+          label: t.militaryBooks,
+          href: "/AllBooks?category=Military",
+          icon: "📚"
+        },
+        {
+          label: t.militaryArticles,
+          href: "/AllArticles?category=Military",
+          icon: "📰"
+        }
+      ]
+    },
+    {
+      label: t.mentor,
+      type: "dropdown",
+      state: mentorOpen,
+      setState: setMentorOpen,
+      items: [
+        {
+          label: t.mentorBooks || "Mentor Books",
+          href: "/AllBooks?category=Mentor",
+          icon: "📚"
+        },
+        {
+          label: t.mentorArticles || "Mentor Articles",
+          href: "/AllArticles?category=Mentor",
+          icon: "📰"
+        },
+        {
+          label: t.studyMaterials,
+          href: "/AllStudyMaterials",
+          icon: "📖"
+        }
+      ]
+    },
+    {
+      label: t.podcast || 'Podcast',
+      href: "/AllPodcasts",
+      type: "link"
+    },
+    {
+      label: t.download,
+      type: "dropdown",
+      state: downloadOpen,
+      setState: setDownloadOpen,
+      items: [
+        {
+          label: t.images,
+          href: "/AllImages",
+          icon: "📸"
+        },
+        {
+          label: t.videos,
+          href: "/AllVideos",
+          icon: "🎥"
+        },
+        {
+          label: t.studyMaterials,
+          href: "/AllStudyMaterials",
+          icon: "📚"
+        }
+      ]
+    }
+  ];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,7 +104,6 @@ const ImprovedNavbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close mobile menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (mobileMenuOpen && !e.target.closest('.mobile-menu') && !e.target.closest('.mobile-menu-button')) {
@@ -44,7 +128,7 @@ const ImprovedNavbar = () => {
     >
       <nav className="container mx-auto px-4">
         <div className="flex items-center justify-between">
-          {/* Logo - Left Aligned */}
+          {/* Logo */}
           <div className="flex-shrink-0">
             <a href="/" className="relative group cursor-pointer block">
               <div className={`relative w-18 h-18 rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-all duration-300 overflow-hidden`}>
@@ -57,109 +141,64 @@ const ImprovedNavbar = () => {
             </a>
           </div>
 
-          {/* Desktop Navigation - Center Aligned */}
+          {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center space-x-2 absolute left-1/2 transform -translate-x-1/2">
-            <a
-              href="/"
-              className={`relative px-4 py-2 ${theme.text.secondary} hover:${theme.text.brand} font-semibold transition-colors duration-300 group`}
-            >
-              {t.home}
-              <span className={`absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r ${theme.gradients.primary} group-hover:w-full transition-all duration-300`}></span>
-            </a>
-
-            <a
-              href="/#about"
-              className={`relative px-4 py-2 ${theme.text.secondary} hover:${theme.text.brand} font-semibold transition-colors duration-300 group`}
-            >
-              {t.about}
-              <span className={`absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r ${theme.gradients.primary} group-hover:w-full transition-all duration-300`}></span>
-            </a>
-
-            <a
-              href="/#military"
-              className={`relative px-4 py-2 ${theme.text.secondary} hover:${theme.text.brand} font-semibold transition-colors duration-300 group`}
-            >
-              {t.military}
-              <span className={`absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r ${theme.gradients.primary} group-hover:w-full transition-all duration-300`}></span>
-            </a>
-
-            <a
-              href="/#mentor"
-              className={`relative px-4 py-2 ${theme.text.secondary} hover:${theme.text.brand} font-semibold transition-colors duration-300 group`}
-            >
-              {t.mentor}
-              <span className={`absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r ${theme.gradients.primary} group-hover:w-full transition-all duration-300`}></span>
-            </a>
-
-            {/* Podcast Link */}
-            <a
-              href="/AllPodcasts"
-              className={`relative px-4 py-2 ${theme.text.secondary} hover:${theme.text.brand} font-semibold transition-colors duration-300 group`}
-            >
-              {t.podcast || 'Podcast'}
-              <span className={`absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r ${theme.gradients.primary} group-hover:w-full transition-all duration-300`}></span>
-            </a>
-
-            {/* Download Dropdown */}
-            <div
-              className="relative"
-              onMouseEnter={() => setDownloadOpen(true)}
-              onMouseLeave={() => setDownloadOpen(false)}
-            >
-              <button
-                onClick={() => setDownloadOpen(!downloadOpen)}
-                className={`relative px-4 py-2 ${theme.text.secondary} hover:${theme.text.brand} font-semibold transition-colors duration-300 flex items-center gap-1 group`}
-              >
-                {t.download}
-                <ChevronDown className={`w-4 h-4 transition-all duration-300 ${downloadOpen ? 'rotate-180' : ''}`} />
-                <span className={`absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r ${theme.gradients.primary} group-hover:w-full transition-all duration-300`}></span>
-              </button>
-
-              <div
-                className={`absolute top-full left-1/2 -translate-x-1/2 pt-2 transition-all duration-300 ${downloadOpen
-                    ? 'opacity-100 visible'
-                    : 'opacity-0 invisible'
-                  }`}
-              >
-                <div className={`${theme.backgrounds.white} ${theme.shadows.xl} rounded-2xl py-3 w-64 ${theme.borders.light} border transition-all duration-300 origin-top ${downloadOpen
-                    ? 'scale-100 translate-y-0'
-                    : 'scale-95 -translate-y-2'
-                  }`}>
-                  <a
-                    href="/AllImages"
-                    className={`flex items-center gap-3 px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} transition-all duration-300 group`}
+            {navLinks.map((navItem, index) => (
+              navItem.type === "link" ? (
+                <a
+                  key={index}
+                  href={navItem.href}
+                  className={`relative px-4 py-2 ${theme.text.secondary} hover:${theme.text.brand} font-semibold transition-colors duration-300 group`}
+                >
+                  {navItem.label}
+                  <span className={`absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r ${theme.gradients.primary} group-hover:w-full transition-all duration-300`}></span>
+                </a>
+              ) : (
+                <div
+                  key={index}
+                  className="relative"
+                  onMouseEnter={() => navItem.setState(true)}
+                  onMouseLeave={() => navItem.setState(false)}
+                >
+                  <button
+                    onClick={() => navItem.setState(!navItem.state)}
+                    className={`relative px-4 py-2 ${theme.text.secondary} hover:${theme.text.brand} font-semibold transition-colors duration-300 flex items-center gap-1 group`}
                   >
-                    <div className={`w-10 h-10 ${theme.backgrounds.primary} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 ${theme.shadows.sm}`}>
-                      <span className="text-xl">📸</span>
-                    </div>
-                    <span className="font-medium">{t.images}</span>
-                  </a>
+                    {navItem.label}
+                    <ChevronDown className={`w-4 h-4 transition-all duration-300 ${navItem.state ? 'rotate-180' : ''}`} />
+                    <span className={`absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r ${theme.gradients.primary} group-hover:w-full transition-all duration-300`}></span>
+                  </button>
 
-                  <a
-                    href="/AllVideos"
-                    className={`flex items-center gap-3 px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} transition-all duration-300 group`}
+                  <div
+                    className={`absolute top-full left-1/2 -translate-x-1/2 pt-2 transition-all duration-300 ${navItem.state
+                        ? 'opacity-100 visible'
+                        : 'opacity-0 invisible'
+                      }`}
                   >
-                    <div className={`w-10 h-10 ${theme.backgrounds.primary} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 ${theme.shadows.sm}`}>
-                      <span className="text-xl">🎥</span>
+                    <div className={`${theme.backgrounds.white} ${theme.shadows.xl} rounded-2xl py-3 w-64 ${theme.borders.light} border transition-all duration-300 origin-top ${navItem.state
+                        ? 'scale-100 translate-y-0'
+                        : 'scale-95 -translate-y-2'
+                      }`}>
+                      {navItem.items.map((item, itemIndex) => (
+                        <a
+                          key={itemIndex}
+                          href={item.href}
+                          className={`flex items-center gap-3 px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} transition-all duration-300 group`}
+                        >
+                          <div className={`w-10 h-10 ${theme.backgrounds.primary} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 ${theme.shadows.sm}`}>
+                            <span className="text-xl">{item.icon}</span>
+                          </div>
+                          <span className="font-medium">{item.label}</span>
+                        </a>
+                      ))}
                     </div>
-                    <span className="font-medium">{t.videos}</span>
-                  </a>
-
-                  <a
-                    href="/AllStudyMaterials"
-                    className={`flex items-center gap-3 px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} transition-all duration-300 group`}
-                  >
-                    <div className={`w-10 h-10 ${theme.backgrounds.primary} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 ${theme.shadows.sm}`}>
-                      <span className="text-xl">📚</span>
-                    </div>
-                    <span className="font-medium">{t.studyMaterials}</span>
-                  </a>
+                  </div>
                 </div>
-              </div>
-            </div>
+              )
+            ))}
           </div>
 
-          {/* Right Side - Language Selector */}
+          {/* Language Selector */}
           <div className="hidden lg:flex items-center">
             <div className="relative">
               <button
@@ -221,69 +260,33 @@ const ImprovedNavbar = () => {
             }`}
         >
           <div className={`pb-4 ${theme.borders.light} border-t pt-4 space-y-1`}>
-            <a
-              href="/"
-              className={`block px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} rounded-xl font-medium transition-all duration-300 hover:translate-x-2`}
-            >
-              {t.home}
-            </a>
-
-            <a
-              href="/#about"
-              className={`block px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} rounded-xl font-medium transition-all duration-300 hover:translate-x-2`}
-            >
-              {t.about}
-            </a>
-
-            <a
-              href="/#military"
-              className={`block px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} rounded-xl font-medium transition-all duration-300 hover:translate-x-2`}
-            >
-              {t.military}
-            </a>
-
-            <a
-              href="/#mentor"
-              className={`block px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} rounded-xl font-medium transition-all duration-300 hover:translate-x-2`}
-            >
-              {t.mentor}
-            </a>
-
-            {/* Mobile Podcast Link */}
-            <a
-              href="/AllPodcasts"
-              className={`block px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} rounded-xl font-medium transition-all duration-300 hover:translate-x-2`}
-            >
-              {t.podcast || 'Podcast'}
-            </a>
-
-            {/* Mobile Download Section */}
-            <div className={`pl-4 space-y-1 pt-2 ${theme.borders.light} border-t mt-2`}>
-              <div className={`text-xs font-bold ${theme.text.light} uppercase tracking-wider mb-2 px-4`}>
-                {t.download}
-              </div>
-              <a
-                href="/AllImages"
-                className={`flex items-center gap-3 px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} rounded-xl transition-all duration-300 hover:translate-x-2`}
-              >
-                <span className="text-xl">📸</span>
-                <span className="font-medium">{t.images}</span>
-              </a>
-              <a
-                href="/AllVideos"
-                className={`flex items-center gap-3 px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} rounded-xl transition-all duration-300 hover:translate-x-2`}
-              >
-                <span className="text-xl">🎥</span>
-                <span className="font-medium">{t.videos}</span>
-              </a>
-              <a
-                href="/AllStudyMaterials"
-                className={`flex items-center gap-3 px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} rounded-xl transition-all duration-300 hover:translate-x-2`}
-              >
-                <span className="text-xl">📚</span>
-                <span className="font-medium">{t.studyMaterials}</span>
-              </a>
-            </div>
+            {navLinks.map((navItem, index) => (
+              navItem.type === "link" ? (
+                <a
+                  key={index}
+                  href={navItem.href}
+                  className={`block px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} rounded-xl font-medium transition-all duration-300 hover:translate-x-2`}
+                >
+                  {navItem.label}
+                </a>
+              ) : (
+                <div key={index} className={`pl-4 space-y-1 pt-2 ${theme.borders.light} border-t mt-2`}>
+                  <div className={`text-xs font-bold ${theme.text.light} uppercase tracking-wider mb-2 px-4`}>
+                    {navItem.label}
+                  </div>
+                  {navItem.items.map((item, itemIndex) => (
+                    <a
+                      key={itemIndex}
+                      href={item.href}
+                      className={`flex items-center gap-3 px-4 py-3 ${theme.text.secondary} hover:${theme.backgrounds.primary} rounded-xl transition-all duration-300 hover:translate-x-2`}
+                    >
+                      <span className="text-xl">{item.icon}</span>
+                      <span className="font-medium">{item.label}</span>
+                    </a>
+                  ))}
+                </div>
+              )
+            ))}
 
             {/* Mobile Language Selector */}
             <div className={`pt-4 ${theme.borders.light} border-t mt-2`}>
