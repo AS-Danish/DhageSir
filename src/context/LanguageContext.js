@@ -52,6 +52,67 @@ export const translations = {
     newspaperArticles: "Newspaper Articles",
     motivationalSessions: "Motivational Sessions",
     publishedBooks: "Published Books",
+
+    // Services Section
+    servicesOffered: "Services Offered",
+    servicesTitle: "Transformative",
+    servicesHighlight: "Services",
+    servicesSubtitle: "Choose from our specialized services designed to elevate your career, leadership skills, and strategic thinking",
+    
+    // Service 1: Book a Talk or Seminar
+    serviceTalkTitle: "Book a Talk or Seminar",
+    serviceTalkDesc: "Inspire and motivate your team, institution, or organization with powerful talks on leadership, discipline, and success.",
+    serviceTalkFeature1: "Keynote speeches for corporate events",
+    serviceTalkFeature2: "Educational institution seminars",
+    serviceTalkFeature3: "Defense career guidance sessions",
+    serviceTalkFeature4: "Motivational workshops for teams",
+    serviceTalkFeature5: "Customized content for your audience",
+    serviceTalkStats: "Events Delivered",
+    
+    // Service 2: Mentorship
+    serviceMentorshipTitle: "Mentorship",
+    serviceMentorshipDesc: "One-on-one personalized guidance to help Defense aspirants, UPSC aspirants and professionals achieve their goals with proven strategies.",
+    serviceMentorshipFeature1: "Personal career roadmap development",
+    serviceMentorshipFeature2: "Exam preparation strategy planning",
+    serviceMentorshipFeature3: "Regular progress tracking sessions",
+    serviceMentorshipFeature4: "Interview preparation & SSB guidance",
+    serviceMentorshipFeature5: "Lifetime access to mentor support",
+    serviceMentorshipStats: "Hundreds of Successful Leaders",
+    
+    // Service 3: Strategic Consultation
+    serviceConsultTitle: "Strategic Consultation",
+    serviceConsultDesc: "Expert consultation for organizations seeking military-grade strategic planning, leadership development, and operational excellence.",
+    serviceConsultFeature1: "Leadership development programs",
+    serviceConsultFeature2: "Strategic planning & execution",
+    serviceConsultFeature3: "Team building & cohesion training",
+    serviceConsultFeature4: "Crisis management protocols",
+    serviceConsultFeature5: "Performance optimization frameworks",
+    serviceConsultStats: "Organizations Served",
+    
+    // Booking Form
+    bookNow: "Book Now",
+    bookService: "Book Service",
+    bookingSuccess: "Booking Submitted!",
+    bookingSuccessMsg: "We'll get back to you shortly to confirm your booking.",
+    bookingError: "Failed to book service. Please try again.",
+    
+    // Form Fields
+    formName: "Your Name",
+    formNamePlaceholder: "Enter your full name",
+    formEmail: "Email Address",
+    formEmailPlaceholder: "your.email@example.com",
+    formPhone: "Phone Number",
+    formPhonePlaceholder: "+91 98765 43210",
+    formOrganization: "Organization/Institution",
+    formOrganizationPlaceholder: "Your company or institution name",
+    formPreferredDate: "Preferred Date",
+    formMessage: "Additional Details",
+    formMessagePlaceholder: "Tell us about your requirements, audience size, event type, etc.",
+    
+    // Buttons
+    cancel: "Cancel",
+    submitBooking: "Submit Booking",
+    submitting: "Submitting...",
   },
   mr: {
     // Navbar
@@ -102,6 +163,67 @@ export const translations = {
     newspaperArticles: "वृत्तपत्र लेख",
     motivationalSessions: "प्रेरक सत्रे",
     publishedBooks: "प्रकाशित पुस्तके",
+
+    // Services Section
+    servicesOffered: "सेवा",
+    servicesTitle: "परिवर्तनकारी",
+    servicesHighlight: "सेवा",
+    servicesSubtitle: "आपली करिअर, नेतृत्व कौशल्ये आणि धोरणात्मक विचार वाढवण्यासाठी डिझाइन केलेल्या आमच्या विशेष सेवांमधून निवडा",
+    
+    // Service 1: Book a Talk or Seminar
+    serviceTalkTitle: "व्याख्यान किंवा चर्चासत्र बुक करा",
+    serviceTalkDesc: "नेतृत्व, शिस्त आणि यशावर सशक्त भाषणांसह आपल्या टीम, संस्था किंवा संस्थेला प्रेरणा आणि प्रोत्साहन द्या.",
+    serviceTalkFeature1: "कॉर्पोरेट कार्यक्रमांसाठी मुख्य भाषणे",
+    serviceTalkFeature2: "शैक्षणिक संस्था चर्चासत्रे",
+    serviceTalkFeature3: "संरक्षण करिअर मार्गदर्शन सत्रे",
+    serviceTalkFeature4: "टीमसाठी प्रेरक कार्यशाळा",
+    serviceTalkFeature5: "आपल्या प्रेक्षकांसाठी सानुकूलित सामग्री",
+    serviceTalkStats: "आयोजित कार्यक्रम",
+    
+    // Service 2: Mentorship
+    serviceMentorshipTitle: "मार्गदर्शन",
+    serviceMentorshipDesc: "संरक्षण इच्छुक, UPSC इच्छुक आणि व्यावसायिकांना सिद्ध धोरणांसह त्यांची उद्दिष्टे साध्य करण्यात मदत करण्यासाठी वैयक्तिक मार्गदर्शन.",
+    serviceMentorshipFeature1: "वैयक्तिक करिअर रोडमॅप विकास",
+    serviceMentorshipFeature2: "परीक्षा तयारी धोरण नियोजन",
+    serviceMentorshipFeature3: "नियमित प्रगती ट्रॅकिंग सत्रे",
+    serviceMentorshipFeature4: "मुलाखत तयारी आणि SSB मार्गदर्शन",
+    serviceMentorshipFeature5: "मार्गदर्शक सहाय्यासाठी आजीवन प्रवेश",
+    serviceMentorshipStats: "यशस्वी नेत्यांची शेकडो",
+    
+    // Service 3: Strategic Consultation
+    serviceConsultTitle: "धोरणात्मक सल्ला",
+    serviceConsultDesc: "लष्करी-दर्जाचे धोरणात्मक नियोजन, नेतृत्व विकास आणि परिचालन उत्कृष्टता शोधणाऱ्या संस्थांसाठी तज्ञ सल्ला.",
+    serviceConsultFeature1: "नेतृत्व विकास कार्यक्रम",
+    serviceConsultFeature2: "धोरणात्मक नियोजन आणि अंमलबजावणी",
+    serviceConsultFeature3: "टीम बिल्डिंग आणि एकता प्रशिक्षण",
+    serviceConsultFeature4: "संकट व्यवस्थापन प्रोटोकॉल",
+    serviceConsultFeature5: "कार्यप्रदर्शन ऑप्टिमायझेशन फ्रेमवर्क",
+    serviceConsultStats: "सेवा दिलेल्या संस्था",
+    
+    // Booking Form
+    bookNow: "आता बुक करा",
+    bookService: "सेवा बुक करा",
+    bookingSuccess: "बुकिंग सबमिट केले!",
+    bookingSuccessMsg: "आम्ही आपल्या बुकिंगची पुष्टी करण्यासाठी लवकरच आपल्याशी संपर्क साधू.",
+    bookingError: "सेवा बुक करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
+    
+    // Form Fields
+    formName: "आपले नाव",
+    formNamePlaceholder: "आपले पूर्ण नाव प्रविष्ट करा",
+    formEmail: "ईमेल पत्ता",
+    formEmailPlaceholder: "your.email@example.com",
+    formPhone: "फोन नंबर",
+    formPhonePlaceholder: "+91 98765 43210",
+    formOrganization: "संस्था/संस्था",
+    formOrganizationPlaceholder: "आपल्या कंपनीचे किंवा संस्थेचे नाव",
+    formPreferredDate: "पसंतीची तारीख",
+    formMessage: "अतिरिक्त तपशील",
+    formMessagePlaceholder: "आम्हाला आपल्या आवश्यकता, प्रेक्षक आकार, कार्यक्रम प्रकार इत्यादीबद्दल सांगा.",
+    
+    // Buttons
+    cancel: "रद्द करा",
+    submitBooking: "बुकिंग सबमिट करा",
+    submitting: "सबमिट करत आहे...",
   }
 };
 
