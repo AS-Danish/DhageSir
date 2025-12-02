@@ -66,7 +66,7 @@ const ServicesSection = () => {
       id: 2,
       icon: Users,
       title: "Mentorship",
-      description: "One-on-one personalized guidance to help defense aspirants and professionals achieve their goals with proven strategies.",
+      description: "One-on-one personalized guidance to help Defense aspirants, UPSC aspirants and professionals achieve their goals with proven strategies.",
       features: [
         "Personal career roadmap development",
         "Exam preparation strategy planning",
@@ -77,7 +77,7 @@ const ServicesSection = () => {
       gradient: theme.gradients.primaryLight,
       bgGradient: theme.backgrounds.primary,
       accentColor: "orange",
-      stats: { label: "Success Rate", value: "98%" }
+      stats: { label: "Hundereds of Successfull Leaders", value: "" }
     },
     {
       id: 3,
@@ -94,7 +94,7 @@ const ServicesSection = () => {
       gradient: theme.gradients.warm,
       bgGradient: theme.backgrounds.primary,
       accentColor: "orange",
-      stats: { label: "Organizations Served", value: "50+" }
+      stats: { label: "Organizations Served", value: "10+" }
     }
   ];
 
@@ -272,34 +272,6 @@ const ServicesSection = () => {
               </div>
             );
           })}
-        </div>
-
-        {/* Bottom CTA Section */}
-        <div className={`mt-16 bg-gradient-to-r ${theme.gradients.dark} rounded-3xl p-8 md:p-12 ${theme.text.white} ${theme.shadows.xl} relative overflow-hidden`}>
-          {/* Decorative Elements */}
-          <div className={`absolute top-0 right-0 w-64 h-64 ${theme.backgrounds.primary} rounded-full filter blur-3xl opacity-20`}></div>
-          <div className={`absolute bottom-0 left-0 w-64 h-64 ${theme.backgrounds.primary} rounded-full filter blur-3xl opacity-20`}></div>
-          
-          <div className="relative z-10">
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
-              {/* Left Content */}
-              <div className="flex-1 text-center lg:text-left">
-                <h3 className="text-3xl md:text-4xl font-black mb-3">
-                  Ready to Start Your Journey?
-                </h3>
-                <p className="text-orange-200 text-lg mb-6 lg:mb-0">
-                  Book a free consultation call to discuss how we can help you achieve your goals
-                </p>
-              </div>
-
-              {/* Right Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button className={`px-8 py-4 ${theme.backgrounds.white} ${theme.text.primary} rounded-xl font-bold hover:bg-gray-100 transition-all ${theme.shadows.xl} hover:shadow-2xl hover:scale-105 whitespace-nowrap`}>
-                  Schedule Free Call
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
