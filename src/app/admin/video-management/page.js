@@ -1,19 +1,25 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Video, Edit2, Trash2, X, Save, RefreshCw, Youtube, Loader, Link, AlertCircle, ChevronDown } from 'lucide-react';
+import { Video, Edit2, Trash2, X, Save, RefreshCw, Youtube, Loader, Link, AlertCircle, ChevronDown, BookOpen } from 'lucide-react';
 import { db } from '../../../firebase/firebaseConfig';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, limit, startAfter, where, getDoc, setDoc } from 'firebase/firestore';
 
-// 🎯 HARDCODED CHANNELS
-const HARDCODED_CHANNELS = [
+// 🎯 HARDCODED PLAYLISTS/CATEGORIES
+// IMPORTANT: Replace the placeholder category_id (which is your YouTube Playlist ID) with your actual playlist IDs.
+const HARDCODED_CATEGORIES = [
   {
-    name: "Dr Satish Dhage",
+    category_name: "International Affairs", // The user's requested category name
+    category_id: "PLuhKcyouEj89HXq_64Ffinu5U7y6P8aLA", // <<<--- YOUR YOUTUBE PLAYLIST ID HERE
+    channel_name: "Dr Satish Dhage",
     channel_id: "UCgXrITZ6XnP_thbBey-enOA",
   },
   {
-    name: "The Mentors Forum",
+    category_name: "Disaster", // A second category name
+    category_id: "PLqB5N9NDPhbJfrao7Z7f90OU5S7nyBu39", // <<<--- YOUR YOUTUBE PLAYLIST ID HERE
+    channel_name: "The Mentors Forum",
     channel_id: "UC6hqtj38jmIqhx1e3POVu8w",
   }
+  // Add as many playlists/categories as you need here
 ];
 
 // Pagination config
@@ -46,13 +52,22 @@ const AdminVideosPage = () => {
   const [lastFetchTime, setLastFetchTime] = useState(null);
   const [fetchError, setFetchError] = useState(null);
 
-  // Pagination state per channel
-  const [channelPagination, setChannelPagination] = useState({});
+  // Pagination state per category/playlist
+  const [categoryPagination, setCategoryPagination] = useState({});
   const [loadingMore, setLoadingMore] = useState({});
 
-  // Videos State - organized by channel
-  const [videosByChannel, setVideosByChannel] = useState({});
-  const [totalCounts, setTotalCounts] = useState({});
+  // Videos State - organized by category_id (Playlist ID)
+  const [videosByCategory, setVideosByCategory] = useState({});
+  const [totalCountsByCategory, setTotalCountsByCategory] = useState({});
+
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addingVideo, setAddingVideo] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all'); // New filter state
+  const [manualVideoForm, setManualVideoForm] = useState({
+    video_url: '',
+    category: '',
+    channel_name: '', // For dropdown fallback
+  });
 
   // Form State
   const [videoForm, setVideoForm] = useState({
@@ -61,11 +76,12 @@ const AdminVideosPage = () => {
     video_url: '',
     thumbnail_url: '',
     channel_name: '',
+    category: '', // New field
   });
 
   // Cache helpers
-  const getCacheKey = (channelId, page) => `videos_${channelId}_page_${page}`;
-  const getCountCacheKey = (channelId) => `video_count_${channelId}`;
+  const getCacheKey = (categoryId, page) => `videos_${categoryId}_page_${page}`;
+  const getCountCacheKey = (categoryId) => `video_count_${categoryId}`;
 
   const getCachedData = (key, maxAge = 5 * 60 * 1000) => {
     try {
@@ -107,10 +123,11 @@ const AdminVideosPage = () => {
     }
   };
 
-  // Parse YouTube RSS
-  const parseYouTubeRSS = async (channelId, retries = 3) => {
-    const RSS_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
-    
+  // Parse YouTube Playlist RSS (updated to use playlist_id)
+  const parseYouTubePlaylistRSS = async (playlistId, retries = 3) => {
+    // This is the key change to fetch videos from a specific playlist.
+    const RSS_URL = `https://www.youtube.com/feeds/videos.xml?playlist_id=${playlistId}`;
+
     // Try multiple CORS proxies
     const CORS_PROXIES = [
       'https://api.allorigins.win/raw?url=',
@@ -121,10 +138,10 @@ const AdminVideosPage = () => {
     for (let attempt = 0; attempt <= retries; attempt++) {
       // Rotate through different proxies on each attempt
       const CORS_PROXY = CORS_PROXIES[attempt % CORS_PROXIES.length];
-      
+
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased to 15 seconds
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
 
         const response = await fetch(CORS_PROXY + encodeURIComponent(RSS_URL), {
           signal: controller.signal,
@@ -140,8 +157,7 @@ const AdminVideosPage = () => {
         }
 
         const text = await response.text();
-        
-        // Check if we got valid XML
+
         if (!text || text.trim().length === 0) {
           throw new Error('Empty response received');
         }
@@ -155,20 +171,20 @@ const AdminVideosPage = () => {
         }
 
         const entries = xml.querySelectorAll('entry');
-        
+
         if (entries.length === 0) {
-          console.warn(`No videos found for channel ${channelId}`);
+          console.warn(`No videos found for playlist ${playlistId}`);
           return [];
         }
 
         const videos = [];
 
         entries.forEach((entry) => {
-          const videoId = entry.querySelector('videoId')?.textContent || 
-                         entry.querySelector('yt\\:videoId')?.textContent || '';
+          const videoId = entry.querySelector('videoId')?.textContent ||
+            entry.querySelector('yt\\:videoId')?.textContent || '';
           const title = entry.querySelector('title')?.textContent || '';
           const description = entry.querySelector('media\\:group media\\:description')?.textContent ||
-            entry.querySelector('media\\:description')?.textContent || 
+            entry.querySelector('media\\:description')?.textContent ||
             entry.querySelector('description')?.textContent || '';
 
           let thumbnailUrl = entry.querySelector('media\\:group media\\:thumbnail')?.getAttribute('url') ||
@@ -176,7 +192,7 @@ const AdminVideosPage = () => {
             entry.querySelector('thumbnail')?.getAttribute('url') ||
             `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
-          const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+          const videoUrl = `https://www.youtube.com/watch?v=${videoId}&list=${playlistId}`; // Include playlist ID in URL
 
           if (videoId && title) {
             videos.push({
@@ -189,20 +205,18 @@ const AdminVideosPage = () => {
           }
         });
 
-        console.log(`✅ Successfully fetched ${videos.length} videos from ${channelId} using ${CORS_PROXY}`);
+        console.log(`✅ Successfully fetched ${videos.length} videos from playlist ${playlistId} using ${CORS_PROXY}`);
         return videos;
 
       } catch (error) {
         const errorMsg = error.name === 'AbortError' ? 'Request timeout' : error.message;
-        console.warn(`Attempt ${attempt + 1}/${retries + 1} failed for ${channelId} (${CORS_PROXY}): ${errorMsg}`);
+        console.warn(`Attempt ${attempt + 1}/${retries + 1} failed for playlist ${playlistId} (${CORS_PROXY}): ${errorMsg}`);
 
         if (attempt === retries) {
-          // Return empty array instead of throwing error to prevent the entire fetch from failing
-          console.error(`❌ All attempts failed for ${channelId}. Returning empty array.`);
+          console.error(`❌ All attempts failed for playlist ${playlistId}. Returning empty array.`);
           return [];
         }
 
-        // Progressive backoff: 2s, 3s, 4s
         await new Promise(resolve => setTimeout(resolve, 2000 + (1000 * attempt)));
       }
     }
@@ -211,51 +225,52 @@ const AdminVideosPage = () => {
   };
 
   // Update news ticker collection (single document, videos only)
-const updateNewsTicker = async (newVideo) => {
-  try {
-    const tickerDocRef = doc(db, "news_ticker", "latest");
-    const tickerSnapshot = await getDoc(tickerDocRef);
+  const updateNewsTicker = async (newVideo) => {
+    try {
+      const tickerDocRef = doc(db, "news_ticker", "latest");
+      const tickerSnapshot = await getDoc(tickerDocRef);
 
-    let tickerData = {
-      latest_article_title: '',
-      latest_article_url: '',
-      second_article_title: '',
-      second_article_url: '',
-      latest_book_title: '',
-      latest_book_url: '',
-      second_book_title: '',
-      second_book_url: '',
-      latest_video_title: '',
-      latest_video_url: '',
-      second_video_title: '',
-      second_video_url: '',
-    };
+      let tickerData = {
+        latest_article_title: '',
+        latest_article_url: '',
+        second_article_title: '',
+        second_article_url: '',
+        latest_book_title: '',
+        latest_book_url: '',
+        second_book_title: '',
+        second_book_url: '',
+        latest_video_title: '',
+        latest_video_url: '',
+        second_video_title: '',
+        second_video_url: '',
+      };
 
-    // Load existing data
-    if (tickerSnapshot.exists()) {
-      tickerData = { ...tickerData, ...tickerSnapshot.data() };
+      if (tickerSnapshot.exists()) {
+        tickerData = { ...tickerData, ...tickerSnapshot.data() };
+      }
+
+      // Check if the new video is actually newer/different
+      if (tickerData.latest_video_url !== newVideo.video_url) {
+        // Move current latest video to second position
+        tickerData.second_video_title = tickerData.latest_video_title;
+        tickerData.second_video_url = tickerData.latest_video_url;
+
+        // Set new video as latest
+        tickerData.latest_video_title = newVideo.title;
+        tickerData.latest_video_url = newVideo.video_url || '';
+
+        // Save updated record
+        await setDoc(tickerDocRef, tickerData);
+      }
+    } catch (error) {
+      console.error("Error updating news ticker (videos):", error);
     }
+  };
 
-    // Move current latest video to second position
-    tickerData.second_video_title = tickerData.latest_video_title;
-    tickerData.second_video_url = tickerData.latest_video_url;
-
-    // Set new video as latest
-    tickerData.latest_video_title = newVideo.title;
-    tickerData.latest_video_url = newVideo.video_url || '';
-
-    // Save updated record
-    await setDoc(tickerDocRef, tickerData);
-
-  } catch (error) {
-    console.error("Error updating news ticker (videos):", error);
-  }
-};
-
-  // Get total count for a channel
-  const getChannelVideoCount = async (channelId) => {
-    const cacheKey = getCountCacheKey(channelId);
-    const cached = getCachedData(cacheKey, 10 * 60 * 1000); // 10 min cache
+  // Get total count for a category (using Playlist ID)
+  const getCategoryVideoCount = async (categoryId) => {
+    const cacheKey = getCountCacheKey(categoryId);
+    const cached = getCachedData(cacheKey, 10 * 60 * 1000);
 
     if (cached !== null) {
       return cached;
@@ -263,7 +278,7 @@ const updateNewsTicker = async (newVideo) => {
 
     const q = query(
       collection(db, "videos"),
-      where("channel_id", "==", channelId)
+      where("category_id", "==", categoryId) // Filter by category_id (Playlist ID)
     );
     const snapshot = await getDocs(q);
     const count = snapshot.size;
@@ -272,11 +287,10 @@ const updateNewsTicker = async (newVideo) => {
     return count;
   };
 
-  // Load videos for a specific channel with pagination
-  // Load videos for a specific channel with pagination
-  const loadChannelVideos = async (channelId, page = 1, useCache = true) => {
+  // Load videos for a specific category (playlist) with pagination
+  const loadCategoryVideos = async (categoryId, page = 1, useCache = true) => {
     try {
-      const cacheKey = getCacheKey(channelId, page);
+      const cacheKey = getCacheKey(categoryId, page);
 
       if (useCache && page === 1) {
         const cached = getCachedData(cacheKey);
@@ -287,7 +301,7 @@ const updateNewsTicker = async (newVideo) => {
 
       const q = query(
         collection(db, "videos"),
-        where("channel_id", "==", channelId),
+        where("category_id", "==", categoryId), // Filter by category_id (Playlist ID)
         orderBy("created_at", "desc"),
         limit(VIDEOS_PER_PAGE)
       );
@@ -298,7 +312,6 @@ const updateNewsTicker = async (newVideo) => {
         ...doc.data()
       }));
 
-      // Remove duplicates based on video ID
       const uniqueVideos = Array.from(
         new Map(videos.map(video => [video.id, video])).values()
       );
@@ -306,40 +319,40 @@ const updateNewsTicker = async (newVideo) => {
       if (page === 1) {
         setCachedData(cacheKey, uniqueVideos);
       }
-      
+
       return uniqueVideos;
     } catch (error) {
-      console.error(`Error loading videos for ${channelId}:`, error);
+      console.error(`Error loading videos for category ${categoryId}:`, error);
       return [];
     }
   };
 
-  // Load more videos for a channel
-  // Load more videos for a channel
-  const handleLoadMore = async (channelId) => {
-    setLoadingMore(prev => ({ ...prev, [channelId]: true }));
+  // Load more videos for a category
+  const handleLoadMore = async (categoryId) => {
+    setLoadingMore(prev => ({ ...prev, [categoryId]: true }));
 
     try {
-      const currentVideos = videosByChannel[channelId] || [];
-      const currentPage = channelPagination[channelId] || 1;
-      
-      // Get the last document for pagination
+      const currentVideos = videosByCategory[categoryId] || [];
+      const currentPage = categoryPagination[categoryId] || 1;
+
       const lastVideo = currentVideos[currentVideos.length - 1];
-      
-      const q = lastVideo 
+
+      const baseQuery = query(
+        collection(db, "videos"),
+        where("category_id", "==", categoryId), // Filter by category_id (Playlist ID)
+        orderBy("created_at", "desc"),
+      );
+
+      const q = lastVideo
         ? query(
-            collection(db, "videos"),
-            where("channel_id", "==", channelId),
-            orderBy("created_at", "desc"),
-            startAfter(lastVideo.created_at),
-            limit(VIDEOS_PER_PAGE)
-          )
+          baseQuery,
+          startAfter(lastVideo.created_at),
+          limit(VIDEOS_PER_PAGE)
+        )
         : query(
-            collection(db, "videos"),
-            where("channel_id", "==", channelId),
-            orderBy("created_at", "desc"),
-            limit(VIDEOS_PER_PAGE)
-          );
+          baseQuery,
+          limit(VIDEOS_PER_PAGE)
+        );
 
       const snapshot = await getDocs(q);
       const newVideos = snapshot.docs.map(doc => ({
@@ -347,30 +360,73 @@ const updateNewsTicker = async (newVideo) => {
         ...doc.data()
       }));
 
-      // Combine and remove duplicates
       const allVideos = [...currentVideos, ...newVideos];
       const uniqueVideos = Array.from(
         new Map(allVideos.map(video => [video.id, video])).values()
       );
 
-      setVideosByChannel(prev => ({
+      setVideosByCategory(prev => ({
         ...prev,
-        [channelId]: uniqueVideos
+        [categoryId]: uniqueVideos
       }));
 
-      setChannelPagination(prev => ({
+      setCategoryPagination(prev => ({
         ...prev,
-        [channelId]: currentPage + 1
+        [categoryId]: currentPage + 1
       }));
     } catch (error) {
       console.error('Error loading more videos:', error);
     } finally {
-      setLoadingMore(prev => ({ ...prev, [channelId]: false }));
+      setLoadingMore(prev => ({ ...prev, [categoryId]: false }));
     }
   };
 
-  // Auto-fetch videos from all channels
-  const autoFetchAllChannels = async () => {
+  // Add this function before autoFetchAllCategories
+  const extractVideoDetails = async (videoUrl) => {
+    try {
+      // Extract video ID from URL
+      const videoIdMatch = videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
+      if (!videoIdMatch) {
+        throw new Error('Invalid YouTube URL');
+      }
+
+      const videoId = videoIdMatch[1];
+
+      // Try to fetch video details using oEmbed API
+      const oEmbedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
+
+      try {
+        const response = await fetch(oEmbedUrl);
+        if (response.ok) {
+          const data = await response.json();
+          return {
+            video_id: videoId,
+            title: data.title,
+            thumbnail_url: data.thumbnail_url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+            channel_name: data.author_name,
+            description: '', // oEmbed doesn't provide description
+          };
+        }
+      } catch (error) {
+        console.warn('oEmbed fetch failed, using fallback');
+      }
+
+      // Fallback: basic video details
+      return {
+        video_id: videoId,
+        title: '',
+        thumbnail_url: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+        channel_name: '',
+        description: '',
+      };
+    } catch (error) {
+      console.error('Error extracting video details:', error);
+      throw error;
+    }
+  };
+
+  // Auto-fetch videos from all categories (Playlists)
+  const autoFetchAllCategories = async () => {
     try {
       setFetchingVideos(true);
       setFetchError(null);
@@ -379,34 +435,34 @@ const updateNewsTicker = async (newVideo) => {
       let totalSkipped = 0;
       const errors = [];
 
-      for (let i = 0; i < HARDCODED_CHANNELS.length; i++) {
-        const channel = HARDCODED_CHANNELS[i];
+      for (let i = 0; i < HARDCODED_CATEGORIES.length; i++) {
+        const category = HARDCODED_CATEGORIES[i];
 
         try {
-          console.log(`📥 Fetching videos from ${channel.name}...`);
+          console.log(`📥 Fetching videos from playlist/category ${category.category_name}...`);
 
-          const fetchedVideos = await parseYouTubeRSS(channel.channel_id);
+          // Use the updated Playlist RSS parser
+          const fetchedVideos = await parseYouTubePlaylistRSS(category.category_id);
 
-          // Get existing videos to check for duplicates
+          // Get existing videos to check for duplicates, filtering by the specific playlist
           const existingQuery = query(
             collection(db, "videos"),
-            where("channel_id", "==", channel.channel_id)
+            where("category_id", "==", category.category_id) // Use category_id (Playlist ID)
           );
           const existingSnapshot = await getDocs(existingQuery);
           const existingUrls = new Set(existingSnapshot.docs.map(doc => doc.data().video_url));
-
-          // Also check by video_id to prevent duplicates
           const existingVideoIds = new Set(
             existingSnapshot.docs.map(doc => doc.data().video_id)
           );
 
           for (const video of fetchedVideos) {
-            // Check both URL and video_id to prevent duplicates
             if (!existingUrls.has(video.video_url) && !existingVideoIds.has(video.video_id)) {
               const videoData = {
                 ...video,
-                channel_id: channel.channel_id,
-                channel_name: channel.name,
+                channel_id: category.channel_id,
+                channel_name: category.channel_name,
+                category_id: category.category_id, // Store the Playlist ID
+                category: category.category_name, // Store the Category Name
                 created_at: new Date().toISOString(),
               };
 
@@ -421,28 +477,27 @@ const updateNewsTicker = async (newVideo) => {
             }
           }
 
-          console.log(`✅ ${channel.name}: ${fetchedVideos.length} videos fetched`);
+          console.log(`✅ ${category.category_name}: ${fetchedVideos.length} videos fetched`);
 
-          if (i < HARDCODED_CHANNELS.length - 1) {
+          if (i < HARDCODED_CATEGORIES.length - 1) {
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
         } catch (error) {
-          console.error(`❌ Error fetching from ${channel.name}:`, error);
-          errors.push({ channel: channel.name, error: error.message });
+          console.error(`❌ Error fetching from ${category.category_name}:`, error);
+          errors.push({ category: category.category_name, error: error.message });
         }
       }
 
-      // Invalidate cache and reload
       invalidateCache();
-      await loadAllChannels();
+      await loadAllCategories(); // Reload data after fetch
 
       const now = new Date().toISOString();
       localStorage.setItem('videos_last_fetch', now);
       setLastFetchTime(now);
 
       if (errors.length > 0) {
-        const errorMsg = errors.map(e => `${e.channel}: ${e.error}`).join('\n');
-        setFetchError(`Some channels failed:\n${errorMsg}`);
+        const errorMsg = errors.map(e => `${e.category}: ${e.error}`).join('\n');
+        setFetchError(`Some categories failed:\n${errorMsg}`);
       }
 
       return { totalAdded, totalSkipped, errors };
@@ -455,33 +510,35 @@ const updateNewsTicker = async (newVideo) => {
     }
   };
 
-  // Load all channels initial data
-  const loadAllChannels = async () => {
-    const channelData = {};
+  // Load all categories initial data
+  const loadAllCategories = async () => {
+    const categoryData = {};
     const counts = {};
     const pagination = {};
 
-    for (const channel of HARDCODED_CHANNELS) {
-      const videos = await loadChannelVideos(channel.channel_id, 1);
-      const count = await getChannelVideoCount(channel.channel_id);
+    for (const category of HARDCODED_CATEGORIES) {
+      // Use category.category_id (which holds the Playlist ID) for fetching
+      const videos = await loadCategoryVideos(category.category_id, 1);
+      const count = await getCategoryVideoCount(category.category_id);
 
-      channelData[channel.channel_id] = videos;
-      counts[channel.channel_id] = count;
-      pagination[channel.channel_id] = 1;
+      // Key the state objects by category_id
+      categoryData[category.category_id] = videos;
+      counts[category.category_id] = count;
+      pagination[category.category_id] = 1;
     }
 
-    setVideosByChannel(channelData);
-    setTotalCounts(counts);
-    setChannelPagination(pagination);
+    setVideosByCategory(categoryData);
+    setTotalCountsByCategory(counts);
+    setCategoryPagination(pagination);
   };
 
   // Manual refresh
   const handleManualRefresh = async () => {
     try {
-      const result = await autoFetchAllChannels();
+      const result = await autoFetchAllCategories();
 
       if (result.errors.length > 0) {
-        alert(`Videos refreshed with some errors:\n${result.errors.map(e => e.channel).join(', ')} failed.\n\nAdded: ${result.totalAdded}, Skipped: ${result.totalSkipped}`);
+        alert(`Videos refreshed with some errors:\n${result.errors.map(e => e.category).join(', ')} failed.\n\nAdded: ${result.totalAdded}, Skipped: ${result.totalSkipped}`);
       } else {
         alert(`Videos refreshed successfully!\nAdded: ${result.totalAdded}, Skipped: ${result.totalSkipped}`);
       }
@@ -505,6 +562,7 @@ const updateNewsTicker = async (newVideo) => {
         description: videoForm.description,
         video_url: videoForm.video_url,
         thumbnail_url: videoForm.thumbnail_url || 'https://via.placeholder.com/480x360?text=No+Thumbnail',
+        category: videoForm.category, // Save the editable category
         updated_at: new Date().toISOString(),
       };
 
@@ -513,11 +571,11 @@ const updateNewsTicker = async (newVideo) => {
       const updatedVideo = { id: editingVideo.id, ...editingVideo, ...videoData };
       await updateNewsTicker(updatedVideo);
 
-      // Update local state
-      const channelId = editingVideo.channel_id;
-      setVideosByChannel(prev => ({
+      // Update local state - use the category_id from the original video to find the collection
+      const categoryId = editingVideo.category_id;
+      setVideosByCategory(prev => ({
         ...prev,
-        [channelId]: prev[channelId].map(v =>
+        [categoryId]: prev[categoryId].map(v =>
           v.id === editingVideo.id ? { ...v, ...videoData } : v
         )
       }));
@@ -534,8 +592,94 @@ const updateNewsTicker = async (newVideo) => {
     }
   };
 
+  // Add this function after handleUpdateVideo
+  const handleAddManualVideo = async () => {
+    if (!manualVideoForm.video_url || !manualVideoForm.category) {
+      alert('Please provide video URL and select a category');
+      return;
+    }
+
+    try {
+      setAddingVideo(true);
+
+      // Extract video details
+      const videoDetails = await extractVideoDetails(manualVideoForm.video_url);
+
+      // If channel name couldn't be fetched and user didn't select one
+      if (!videoDetails.channel_name && !manualVideoForm.channel_name) {
+        alert('Please select a channel name from the dropdown');
+        setAddingVideo(false);
+        return;
+      }
+
+      // Find the selected category config
+      const categoryConfig = HARDCODED_CATEGORIES.find(
+        cat => cat.category_name === manualVideoForm.category
+      );
+
+      if (!categoryConfig) {
+        alert('Invalid category selected');
+        setAddingVideo(false);
+        return;
+      }
+
+      // Check for duplicates
+      const existingQuery = query(
+        collection(db, "videos"),
+        where("video_id", "==", videoDetails.video_id)
+      );
+      const existingSnapshot = await getDocs(existingQuery);
+
+      if (!existingSnapshot.empty) {
+        alert('This video already exists in the database');
+        setAddingVideo(false);
+        return;
+      }
+
+      // Prepare video data
+      const videoData = {
+        title: videoDetails.title || 'Untitled Video',
+        description: videoDetails.description || 'No description available',
+        video_url: manualVideoForm.video_url,
+        video_id: videoDetails.video_id,
+        thumbnail_url: videoDetails.thumbnail_url,
+        channel_name: videoDetails.channel_name || manualVideoForm.channel_name,
+        channel_id: categoryConfig.channel_id,
+        category: manualVideoForm.category,
+        category_id: categoryConfig.category_id,
+        created_at: new Date().toISOString(),
+      };
+
+      // Add to Firestore
+      const docRef = await addDoc(collection(db, "videos"), videoData);
+      const newVideo = { id: docRef.id, ...videoData };
+
+      // Update news ticker
+      await updateNewsTicker(newVideo);
+
+      // Invalidate cache and reload
+      invalidateCache();
+      await loadAllCategories();
+
+      // Reset form
+      setManualVideoForm({
+        video_url: '',
+        category: '',
+        channel_name: '',
+      });
+      setShowAddForm(false);
+
+      alert('Video added successfully!');
+    } catch (error) {
+      console.error('Error adding manual video:', error);
+      alert('Failed to add video: ' + error.message);
+    } finally {
+      setAddingVideo(false);
+    }
+  };
+
   // Delete video
-  const handleDeleteVideo = async (id, channelId) => {
+  const handleDeleteVideo = async (id, categoryId) => { // categoryId is the Playlist ID
     if (!window.confirm('Are you sure you want to delete this video?')) {
       return;
     }
@@ -545,14 +689,14 @@ const updateNewsTicker = async (newVideo) => {
 
       await deleteDoc(doc(db, "videos", id));
 
-      setVideosByChannel(prev => ({
+      setVideosByCategory(prev => ({
         ...prev,
-        [channelId]: prev[channelId].filter(v => v.id !== id)
+        [categoryId]: prev[categoryId].filter(v => v.id !== id)
       }));
 
-      setTotalCounts(prev => ({
+      setTotalCountsByCategory(prev => ({
         ...prev,
-        [channelId]: (prev[channelId] || 1) - 1
+        [categoryId]: (prev[categoryId] || 1) - 1
       }));
 
       invalidateCache();
@@ -573,6 +717,7 @@ const updateNewsTicker = async (newVideo) => {
       video_url: video.video_url,
       thumbnail_url: video.thumbnail_url,
       channel_name: video.channel_name,
+      category: video.category || '', // New field
     });
   };
 
@@ -583,34 +728,34 @@ const updateNewsTicker = async (newVideo) => {
       video_url: '',
       thumbnail_url: '',
       channel_name: '',
+      category: '', // New field
     });
     setEditingVideo(null);
   };
 
   // Initial load
   useEffect(() => {
-  const loadData = async () => {
-    setInitialLoading(true);
-    try {
-      // Just load existing videos from Firebase
-      await loadAllChannels();
-      
-      const lastFetch = localStorage.getItem('videos_last_fetch');
-      if (lastFetch) {
-        setLastFetchTime(lastFetch);
-      }
-    } catch (error) {
-      console.error('Error loading data:', error);
-      setFetchError('Failed to load videos from database');
-    } finally {
-      setInitialLoading(false);
-    }
-  };
-  
-  loadData();
-}, []);
+    const loadData = async () => {
+      setInitialLoading(true);
+      try {
+        await loadAllCategories();
 
-  const totalVideos = Object.values(totalCounts).reduce((sum, count) => sum + count, 0);
+        const lastFetch = localStorage.getItem('videos_last_fetch');
+        if (lastFetch) {
+          setLastFetchTime(lastFetch);
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+        setFetchError('Failed to load videos from database');
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  const totalVideos = Object.values(totalCountsByCategory).reduce((sum, count) => sum + count, 0);
 
   if (initialLoading) {
     return (
@@ -632,7 +777,7 @@ const updateNewsTicker = async (newVideo) => {
           <div className="bg-white rounded-2xl p-8 flex flex-col items-center">
             <Loader className="w-12 h-12 text-orange-500 animate-spin mb-4" />
             <p className="text-gray-900 font-bold">
-              {fetchingVideos ? 'Fetching videos from YouTube...' : 'Processing...'}
+              {fetchingVideos ? 'Fetching videos from YouTube Playlists...' : 'Processing...'}
             </p>
             <p className="text-gray-600 text-sm mt-2">This may take a moment</p>
           </div>
@@ -644,8 +789,8 @@ const updateNewsTicker = async (newVideo) => {
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-black text-white mb-2">Videos Management</h1>
-              <p className="text-orange-100">Auto-synced with YouTube channels</p>
+              <h1 className="text-4xl font-black text-white mb-2">Category Videos Management</h1>
+              <p className="text-orange-100">Auto-synced with YouTube Playlists</p>
               {lastFetchTime && (
                 <p className="text-orange-200 text-sm mt-1">
                   Last updated: {new Date(lastFetchTime).toLocaleString()}
@@ -654,12 +799,19 @@ const updateNewsTicker = async (newVideo) => {
             </div>
             <div className="flex items-center gap-4">
               <button
+                onClick={() => setShowAddForm(!showAddForm)}
+                className={`inline-flex items-center gap-2 ${getButton('success')}`}
+              >
+                <Video className="w-5 h-5" />
+                Add Video
+              </button>
+              <button
                 onClick={handleManualRefresh}
                 disabled={fetchingVideos}
                 className={`inline-flex items-center gap-2 ${getButton('secondary')} disabled:opacity-50`}
               >
                 <RefreshCw className={`w-5 h-5 ${fetchingVideos ? 'animate-spin' : ''}`} />
-                Refresh Videos
+                Refresh Categories
               </button>
               <Video className="w-16 h-16 text-white opacity-50" />
             </div>
@@ -688,20 +840,24 @@ const updateNewsTicker = async (newVideo) => {
         </div>
       )}
 
-      {/* Channel Info Banner */}
+      {/* Category Filter */}
       <div className="bg-white border-b-2 border-gray-100 shadow-sm">
         <div className="container mx-auto px-4 max-w-7xl py-4">
           <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-6">
-              {HARDCODED_CHANNELS.map((channel, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <Youtube className="w-5 h-5 text-orange-600" />
-                  <span className="font-bold text-gray-900">{channel.name}</span>
-                  <span className="text-sm text-gray-500">
-                    ({totalCounts[channel.channel_id] || 0} videos)
-                  </span>
-                </div>
-              ))}
+            <div className="flex items-center gap-4">
+              <label className="text-sm font-bold text-gray-900">View Category:</label>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="text-black px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors font-semibold"
+              >
+                <option value="all">All Categories</option>
+                {HARDCODED_CATEGORIES.map((cat, idx) => (
+                  <option key={idx} value={cat.category_id}>
+                    {cat.category_name} ({totalCountsByCategory[cat.category_id] || 0} videos)
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="text-sm text-gray-600">
               Total: <span className="font-bold text-gray-900">{totalVideos}</span> videos
@@ -709,6 +865,105 @@ const updateNewsTicker = async (newVideo) => {
           </div>
         </div>
       </div>
+
+      {/* Manual Add Video Form */}
+      {showAddForm && (
+        <div className={`${theme.cards.elevated} rounded-2xl p-8 mb-8`}>
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-2xl font-bold text-gray-900">Add New Video</h3>
+            <button
+              onClick={() => {
+                setShowAddForm(false);
+                setManualVideoForm({ video_url: '', category: '', channel_name: '' });
+              }}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-bold text-gray-900 mb-2">
+                YouTube Video URL *
+              </label>
+              <div className="relative">
+                <Link className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="url"
+                  value={manualVideoForm.video_url}
+                  onChange={(e) => setManualVideoForm({ ...manualVideoForm, video_url: e.target.value })}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  className="text-black w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-900 mb-2">
+                Category *
+              </label>
+              <select
+                value={manualVideoForm.category}
+                onChange={(e) => setManualVideoForm({ ...manualVideoForm, category: e.target.value })}
+                className="text-black w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
+              >
+                <option value="">Select Category</option>
+                {HARDCODED_CATEGORIES.map((cat, idx) => (
+                  <option key={idx} value={cat.category_name}>
+                    {cat.category_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-900 mb-2">
+                Channel Name (Fallback)
+              </label>
+              <select
+                value={manualVideoForm.channel_name}
+                onChange={(e) => setManualVideoForm({ ...manualVideoForm, channel_name: e.target.value })}
+                className="text-black w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
+              >
+                <option value="">Auto-detect or select</option>
+                {HARDCODED_CATEGORIES.map((cat, idx) => (
+                  <option key={idx} value={cat.channel_name}>
+                    {cat.channel_name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Only needed if channel name cannot be auto-detected
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-4 mt-6">
+            <button
+              onClick={handleAddManualVideo}
+              disabled={addingVideo}
+              className={`inline-flex items-center gap-2 ${getButton('primary')} disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {addingVideo ? (
+                <Loader className="w-5 h-5 animate-spin" />
+              ) : (
+                <Save className="w-5 h-5" />
+              )}
+              Add Video
+            </button>
+            <button
+              onClick={() => {
+                setShowAddForm(false);
+                setManualVideoForm({ video_url: '', category: '', channel_name: '' });
+              }}
+              className={getButton('secondary')}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="container mx-auto px-4 max-w-7xl py-8">
         {/* Edit Video Form */}
@@ -740,7 +995,21 @@ const updateNewsTicker = async (newVideo) => {
 
               <div>
                 <label className="block text-sm font-bold text-gray-900 mb-2">
-                  Channel
+                  Category
+                </label>
+                <input
+                  type="text"
+                  value={videoForm.category}
+                  onChange={(e) => setVideoForm({ ...videoForm, category: e.target.value })}
+                  placeholder="Enter video category"
+                  className="text-black w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
+                />
+              </div>
+
+              {/* Added Channel Name/ID for context */}
+              <div className="md:col-span-1">
+                <label className="block text-sm font-bold text-gray-900 mb-2">
+                  Channel Source
                 </label>
                 <input
                   type="text"
@@ -749,6 +1018,7 @@ const updateNewsTicker = async (newVideo) => {
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-100 text-gray-600"
                 />
               </div>
+
 
               <div className="md:col-span-2">
                 <label className="block text-sm font-bold text-gray-900 mb-2">
@@ -830,116 +1100,118 @@ const updateNewsTicker = async (newVideo) => {
           </div>
         )}
 
-        {/* Videos by Channel */}
-        {HARDCODED_CHANNELS.map((channel, idx) => {
-          const channelVideos = videosByChannel[channel.channel_id] || [];
-          const totalCount = totalCounts[channel.channel_id] || 0;
-          const currentPage = channelPagination[channel.channel_id] || 1;
-          const hasMore = channelVideos.length < totalCount;
-          const isLoadingMore = loadingMore[channel.channel_id];
+        {/* Videos by Category */}
+        {HARDCODED_CATEGORIES
+          .filter(category => selectedCategory === 'all' || category.category_id === selectedCategory)
+          .map((category, idx) => {
+            const categoryId = category.category_id;
+            const categoryVideos = videosByCategory[categoryId] || [];
+            const totalCount = totalCountsByCategory[categoryId] || 0;
+            const hasMore = categoryVideos.length < totalCount;
+            const isLoadingMore = loadingMore[categoryId];
 
-          return (
-            <div key={idx} className="mb-12">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center">
-                  <Youtube className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-3xl font-black text-gray-900">{channel.name}</h2>
-                  <p className="text-gray-600">
-                    Showing {channelVideos.length} of {totalCount} videos
-                  </p>
-                </div>
-              </div>
-
-              {channelVideos.length > 0 ? (
-                <>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {channelVideos.map((video) => (
-                      <div key={video.id} className={`${theme.cards.elevated} rounded-2xl overflow-hidden hover:shadow-2xl transition-shadow`}>
-                        <div className="relative h-48">
-                          <img
-                            src={video.thumbnail_url || 'https://via.placeholder.com/480x360?text=No+Thumbnail'}
-                            alt={video.title}
-                            className="text-black w-full h-full object-cover"
-                          />
-                          <div className="absolute top-4 right-4">
-                            <span className="px-3 py-1 bg-orange-600 text-white text-xs font-bold rounded-full shadow-xl">
-                              YouTube
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="p-6">
-                          <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">
-                            {video.title}
-                          </h3>
-                          <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                            {video.description}
-                          </p>
-                          {video.video_url && (
-                            <a
-                              href={video.video_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-orange-600 hover:text-orange-700 mb-4 block truncate"
-                            >
-                              🔗 Watch Video
-                            </a>
-                          )}<div className="flex gap-2 mt-4">
-                            <button
-                              onClick={() => startEditVideo(video)}
-                              className="flex-1 inline-flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl py-2 px-4 font-bold transition-all"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDeleteVideo(video.id, channel.channel_id)}
-                              className="flex-1 inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl py-2 px-4 font-bold transition-all"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+            return (
+              <div key={idx} className="mb-12">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center">
+                    <BookOpen className="w-6 h-6 text-white" />
                   </div>
-
-                  {/* Load More Button */}
-                  {hasMore && (
-                    <div className="text-center mt-8">
-                      <button
-                        onClick={() => handleLoadMore(channel.channel_id)}
-                        disabled={isLoadingMore}
-                        className={`inline-flex items-center gap-2 ${getButton('secondary')} disabled:opacity-50`}
-                      >
-                        {isLoadingMore ? (
-                          <>
-                            <Loader className="w-5 h-5 animate-spin" />
-                            Loading...
-                          </>
-                        ) : (
-                          <>
-                            <ChevronDown className="w-5 h-5" />
-                            Load More ({totalCount - channelVideos.length} remaining)
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="text-center py-12 bg-gray-50 rounded-2xl">
-                  <Video className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-600">No videos found for this channel yet</p>
-                  <p className="text-gray-500 text-sm mt-1">Videos will appear automatically when uploaded</p>
+                  <div>
+                    <h2 className="text-3xl font-black text-gray-900">{category.category_name}</h2>
+                    <p className="text-gray-600">
+                      Source Channel: <span className='font-semibold'>{category.channel_name}</span> | Showing {categoryVideos.length} of {totalCount} videos
+                    </p>
+                  </div>
                 </div>
-              )}
-            </div>
-          );
-        })}
+
+                {categoryVideos.length > 0 ? (
+                  <>
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {categoryVideos.map((video) => (
+                        <div key={video.id} className={`${theme.cards.elevated} rounded-2xl overflow-hidden hover:shadow-2xl transition-shadow`}>
+                          <div className="relative h-48">
+                            <img
+                              src={video.thumbnail_url || 'https://via.placeholder.com/480x360?text=No+Thumbnail'}
+                              alt={video.title}
+                              className="text-black w-full h-full object-cover"
+                            />
+                            <div className="absolute top-4 right-4">
+                              <span className="px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded-full shadow-xl">
+                                {video.category || category.category_name}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="p-6">
+                            <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">
+                              {video.title}
+                            </h3>
+                            <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                              {video.description}
+                            </p>
+                            {video.video_url && (
+                              <a
+                                href={video.video_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-orange-600 hover:text-orange-700 mb-4 block truncate"
+                              >
+                                🔗 Watch Video
+                              </a>
+                            )}<div className="flex gap-2 mt-4">
+                              <button
+                                onClick={() => startEditVideo(video)}
+                                className="flex-1 inline-flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl py-2 px-4 font-bold transition-all"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteVideo(video.id, categoryId)}
+                                className="flex-1 inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl py-2 px-4 font-bold transition-all"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Load More Button */}
+                    {hasMore && (
+                      <div className="text-center mt-8">
+                        <button
+                          onClick={() => handleLoadMore(categoryId)}
+                          disabled={isLoadingMore}
+                          className={`inline-flex items-center gap-2 ${getButton('secondary')} disabled:opacity-50`}
+                        >
+                          {isLoadingMore ? (
+                            <>
+                              <Loader className="w-5 h-5 animate-spin" />
+                              Loading...
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="w-5 h-5" />
+                              Load More ({totalCount - categoryVideos.length} remaining)
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-12 bg-gray-50 rounded-2xl">
+                    <Video className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-600">No videos found for this category yet</p>
+                    <p className="text-gray-500 text-sm mt-1">Videos will appear automatically when uploaded to the configured playlist.</p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
         {totalVideos === 0 && (
           <div className="text-center py-20">
