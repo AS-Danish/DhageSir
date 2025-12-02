@@ -113,6 +113,45 @@ export const translations = {
     cancel: "Cancel",
     submitBooking: "Submit Booking",
     submitting: "Submitting...",
+
+    // Contact Section
+    getInTouch: "Get In Touch",
+    contactUs: "Contact Us",
+    contactDescription: "Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.",
+    contactInformation: "Contact Information",
+    sendMessage: "Send a Message",
+    
+    // Contact Details
+    phoneNumber: "Phone Number",
+    emailAddress: "Email Address",
+    
+    // Contact Form Fields
+    yourName: "Your Name",
+    namePlaceholder: "Enter your full name",
+    phoneLabel: "Phone Number",
+    yourMessage: "Your Message",
+    messagePlaceholder: "Tell us how we can help you...",
+    
+    // Contact Status Messages
+    messageSent: "Message sent successfully! We'll get back to you soon.",
+    messageFailed: "Failed to send message. Please try again.",
+    
+    // Contact Buttons
+    sendMessageBtn: "Send Message",
+    sending: "Sending...",
+    
+    // Social Section
+    connectWithUs: "Connect With Us",
+    followSocial: "Follow us on social media",
+    
+    // Social Links
+    whatsapp: "WhatsApp",
+    youtube1: "YouTube 1",
+    youtube2: "YouTube 2",
+    instagram: "Instagram",
+    facebook: "Facebook",
+    twitter: "X (Twitter)",
+    linkedin: "LinkedIn",
   },
   mr: {
     // Navbar
@@ -224,6 +263,45 @@ export const translations = {
     cancel: "रद्द करा",
     submitBooking: "बुकिंग सबमिट करा",
     submitting: "सबमिट करत आहे...",
+
+    // Contact Section
+    getInTouch: "संपर्कात रहा",
+    contactUs: "संपर्क करा",
+    contactDescription: "प्रश्न आहेत? आम्ही तुमच्याकडून ऐकू इच्छितो. आम्हाला एक संदेश पाठवा आणि आम्ही शक्य तितक्या लवकर प्रतिसाद देऊ.",
+    contactInformation: "संपर्क माहिती",
+    sendMessage: "संदेश पाठवा",
+    
+    // Contact Details
+    phoneNumber: "फोन नंबर",
+    emailAddress: "ईमेल पत्ता",
+    
+    // Contact Form Fields
+    yourName: "तुमचे नाव",
+    namePlaceholder: "तुमचे पूर्ण नाव प्रविष्ट करा",
+    phoneLabel: "फोन नंबर",
+    yourMessage: "तुमचा संदेश",
+    messagePlaceholder: "आम्ही तुम्हाला कशी मदत करू शकतो ते सांगा...",
+    
+    // Contact Status Messages
+    messageSent: "संदेश यशस्वीरित्या पाठवला! आम्ही लवकरच तुमच्याशी संपर्क साधू.",
+    messageFailed: "संदेश पाठवण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
+    
+    // Contact Buttons
+    sendMessageBtn: "संदेश पाठवा",
+    sending: "पाठवत आहे...",
+    
+    // Social Section
+    connectWithUs: "आमच्याशी जुडा",
+    followSocial: "सोशल मीडियावर आमचे अनुसरण करा",
+    
+    // Social Links
+    whatsapp: "व्हॉट्सअॅप",
+    youtube1: "यूट्यूब 1",
+    youtube2: "यूट्यूब 2",
+    instagram: "इन्स्टाग्राम",
+    facebook: "फेसबुक",
+    twitter: "एक्स (ट्विटर)",
+    linkedin: "लिंक्डइन",
   }
 };
 

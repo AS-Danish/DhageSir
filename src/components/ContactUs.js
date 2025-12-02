@@ -1,6 +1,7 @@
 "use client"
 import React, { useState } from 'react';
-import { Mail, Phone, MapPin, Clock, Send, MessageCircle, CheckCircle, AlertCircle } from 'lucide-react';
+import { Mail, Phone, Send, MessageCircle, CheckCircle, AlertCircle } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 // Global Theme Colors
 const theme = {
@@ -18,6 +19,8 @@ const theme = {
 };
 
 const ContactSection = () => {
+  const { t } = useLanguage();
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -50,7 +53,6 @@ const ContactSection = () => {
         setStatus({ loading: false, success: true, error: null });
         setFormData({ name: '', email: '', phone: '', message: '' });
         
-        // Reset success message after 5 seconds
         setTimeout(() => {
           setStatus({ loading: false, success: false, error: null });
         }, 5000);
@@ -61,7 +63,7 @@ const ContactSection = () => {
       setStatus({ 
         loading: false, 
         success: false, 
-        error: error.message || 'Failed to send message. Please try again.' 
+        error: error.message || t.messageFailed || 'Failed to send message. Please try again.' 
       });
     }
   };
@@ -76,14 +78,14 @@ const ContactSection = () => {
   const contactDetails = [
     {
       icon: Phone,
-      label: "Phone Number",
+      label: t.phoneNumber,
       value: "+91 98222 42782",
       link: "tel:+919822242782",
       gradient: theme.iconGradients.phone
     },
     {
       icon: Mail,
-      label: "Email Address",
+      label: t.emailAddress,
       value: "drsatishdhage@gmail.com",
       link: "mailto:drsatishdhage@gmail.com",
       gradient: theme.iconGradients.email
@@ -91,46 +93,52 @@ const ContactSection = () => {
   ];
 
   const socialLinks = [
-    /*{
-      name: "Facebook",
+    {
+      name: t.facebook,
       url: "https://facebook.com/yourpage",
       bgColor: "bg-gradient-to-br from-blue-600 to-blue-700",
       hoverColor: "hover:from-blue-700 hover:to-blue-800",
     },
     {
-      name: "Twitter",
-      url: "https://twitter.com/yourhandle",
-      bgColor: "bg-gradient-to-br from-sky-400 to-blue-600",
-      hoverColor: "hover:from-sky-500 hover:to-blue-700",
-    },*/
+      name: t.instagram,
+      url: "https://instagram.com/yourprofile",
+      bgColor: "bg-gradient-to-br from-pink-500 via-purple-500 to-orange-500",
+      hoverColor: "hover:from-pink-600 hover:via-purple-600 hover:to-orange-600",
+    },
     {
-      name: "WhatsApp",
+      name: t.twitter,
+      url: "https://twitter.com/yourhandle",
+      bgColor: "bg-gradient-to-br from-gray-800 to-gray-900",
+      hoverColor: "hover:from-gray-900 hover:to-black",
+    },
+    {
+      name: t.whatsapp,
       url: "https://wa.me/918698340084",
       bgColor: "bg-gradient-to-br from-green-500 to-emerald-600",
       hoverColor: "hover:from-green-600 hover:to-emerald-700",
     },
     {
-      name: "YouTube 1",
+      name: t.youtube1,
       url: "https://www.youtube.com/@TheMentorsForum",
       bgColor: "bg-gradient-to-br from-red-600 to-red-700",
       hoverColor: "hover:from-red-700 hover:to-red-800",
     },
     {
-      name: "YouTube 2",
+      name: t.youtube2,
       url: "https://www.youtube.com/@drsatishdhage",
       bgColor: "bg-gradient-to-br from-red-600 to-red-700",
       hoverColor: "hover:from-red-700 hover:to-red-800",
     },
-    /*{
-      name: "LinkedIn",
-      url: "https://linkedin.com/company/yourcompany",
+    {
+      name: t.linkedin,
+      url: "https://linkedin.com/in/yourprofile",
       bgColor: "bg-gradient-to-br from-blue-700 to-blue-800",
       hoverColor: "hover:from-blue-800 hover:to-blue-900",
-    }*/
+    }
   ];
 
   return (
-    <section className="py-16 md:py-20 bg-white relative overflow-hidden">
+    <section className="py-16 md:py-20 bg-white relative overflow-hidden" id='contact'>
       {/* Background Decorative Elements */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-orange-50 rounded-full filter blur-3xl opacity-20"></div>
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-amber-50 rounded-full filter blur-3xl opacity-20"></div>
@@ -141,13 +149,13 @@ const ContactSection = () => {
         <div className="text-center mb-12">
           <div className={`inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r ${theme.gradients.primary} text-white rounded-full text-sm font-semibold mb-4 shadow-lg`}>
             <MessageCircle className="w-4 h-4" />
-            Get In Touch
+            {t.getInTouch}
           </div>
           <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-3">
-            Contact <span className={`bg-gradient-to-r ${theme.gradients.primary} bg-clip-text text-transparent`}>Us</span>
+            {t.contactUs.split(' ')[0]} <span className={`bg-gradient-to-r ${theme.gradients.primary} bg-clip-text text-transparent`}>{t.contactUs.split(' ').slice(1).join(' ') || 'Us'}</span>
           </h2>
           <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-            Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+            {t.contactDescription}
           </p>
         </div>
 
@@ -155,7 +163,7 @@ const ContactSection = () => {
         <div className="grid lg:grid-cols-2 gap-12 mb-12">
           {/* Left Side - Contact Details */}
           <div>
-            <h3 className="text-2xl font-black text-gray-900 mb-6">Contact Information</h3>
+            <h3 className="text-2xl font-black text-gray-900 mb-6">{t.contactInformation}</h3>
             <div className="space-y-5">
               {contactDetails.map((detail, index) => {
                 const Icon = detail.icon;
@@ -182,55 +190,55 @@ const ContactSection = () => {
 
           {/* Right Side - Quick Contact Form */}
           <div>
-            <h3 className="text-2xl font-black text-gray-900 mb-6">Send a Message</h3>
+            <h3 className="text-2xl font-black text-gray-900 mb-6">{t.sendMessage}</h3>
             <div className="bg-white rounded-3xl shadow-2xl p-8 border-2 border-gray-100">
               <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Your Name</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">{t.yourName}</label>
                   <input 
                     type="text" 
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    placeholder="Enter your full name"
+                    placeholder={t.namePlaceholder}
                     required
                     className="text-black w-full px-5 py-4 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none transition-all"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Email Address</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">{t.emailAddress}</label>
                   <input 
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="your.email@example.com"
+                    placeholder={t.emailPlaceholder}
                     required
                     className="text-black w-full px-5 py-4 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none transition-all"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Phone Number</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">{t.phoneLabel}</label>
                   <input 
                     type="tel"
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
-                    placeholder="+91 98765 43210"
+                    placeholder={t.phonePlaceholder}
                     className="text-black w-full px-5 py-4 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none transition-all"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Your Message</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">{t.yourMessage}</label>
                   <textarea 
                     name="message"
                     value={formData.message}
                     onChange={handleChange}
                     rows="4"
-                    placeholder="Tell us how we can help you..."
+                    placeholder={t.messagePlaceholder}
                     required
                     className="text-black w-full px-5 py-4 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none transition-all resize-none"
                   ></textarea>
@@ -240,7 +248,7 @@ const ContactSection = () => {
                 {status.success && (
                   <div className="flex items-center gap-2 p-4 bg-green-50 border-2 border-green-200 rounded-xl text-green-700">
                     <CheckCircle className="w-5 h-5 flex-shrink-0" />
-                    <span className="font-semibold">Message sent successfully! We'll get back to you soon.</span>
+                    <span className="font-semibold">{t.messageSent}</span>
                   </div>
                 )}
 
@@ -260,12 +268,12 @@ const ContactSection = () => {
                   {status.loading ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Sending...
+                      {t.sending}
                     </>
                   ) : (
                     <>
                       <Send className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                      Send Message
+                      {t.sendMessageBtn}
                     </>
                   )}
                 </button>
@@ -277,8 +285,8 @@ const ContactSection = () => {
         {/* Social Media Section */}
         <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-8 md:p-10 border border-gray-200">
           <div className="text-center mb-8">
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Connect With Us</h3>
-            <p className="text-gray-600">Follow us on social media</p>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">{t.connectWithUs}</h3>
+            <p className="text-gray-600">{t.followSocial}</p>
           </div>
 
           {/* Social Links Grid */}
