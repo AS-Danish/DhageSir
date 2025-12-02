@@ -1,7 +1,10 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
-import { Play, Youtube, Filter, ArrowRight, Loader, ChevronDown } from 'lucide-react';
+import { Play, Youtube, ArrowRight, Loader } from 'lucide-react';
 import { db } from '../firebase/firebaseConfig';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
+import Link from 'next/link';
 
 const theme = {
   backgrounds: {
@@ -49,22 +52,23 @@ const getButton = (variant = 'primary') => {
   return variants[variant];
 };
 
-const VIDEOS_PER_PAGE = 6;
+// 🎯 CONFIGURE YOUR "VIEW ALL VIDEOS" URL HERE
+const VIEW_ALL_VIDEOS_URL = '/AllVideos'; // Change this to your videos page URL
+// Examples:
+// const VIEW_ALL_VIDEOS_URL = '/videos';
+// const VIEW_ALL_VIDEOS_URL = 'https://www.youtube.com/@yourchannel/videos';
+// const VIEW_ALL_VIDEOS_URL = '/library';
 
 const VideosSection = () => {
-  const [activeCategory, setActiveCategory] = useState('All');
   const [videos, setVideos] = useState([]);
-  const [filteredVideos, setFilteredVideos] = useState([]);
-  const [categories, setCategories] = useState(['All']);
   const [playingVideo, setPlayingVideo] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [displayCount, setDisplayCount] = useState(VIDEOS_PER_PAGE);
   const [error, setError] = useState(null);
   const [channels, setChannels] = useState([]);
 
   // Cache helpers
-  const CACHE_KEY = 'videos_section_cache';
-  const CACHE_TIMESTAMP_KEY = 'videos_section_cache_timestamp';
+  const CACHE_KEY = 'homepage_videos_cache';
+  const CACHE_TIMESTAMP_KEY = 'homepage_videos_cache_timestamp';
   const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
   const getCachedData = () => {
@@ -106,36 +110,19 @@ const VideosSection = () => {
     return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1` : null;
   };
 
-  // Auto-assign categories based on video title/description
-  const assignCategory = (video) => {
-    const text = `${video.title} ${video.description}`.toLowerCase();
-    
-    if (text.match(/exam|nda|preparation|strategy|test|study/i)) return 'Exam Preparation';
-    if (text.match(/motivat|inspir|discipline|success/i)) return 'Motivational';
-    if (text.match(/fitness|health|physical|exercise|workout/i)) return 'Fitness & Health';
-    if (text.match(/leadership|leader|command|management/i)) return 'Leadership';
-    if (text.match(/military|combat|defense|forces|strategy|tactical/i)) return 'Military Strategy';
-    if (text.match(/success story|journey|achievement|selection/i)) return 'Success Stories';
-    
-    return 'General';
-  };
-
-  // Extract categories and channels from videos
-  const extractCategoriesAndChannels = (videosList) => {
-    // Extract unique categories
-    const uniqueCategories = ['All', ...new Set(videosList.map(v => v.category))];
-    
-    // Extract unique channels
+  // Extract unique channels from videos
+  const extractChannels = (videosList) => {
     const uniqueChannels = Array.from(
       new Map(
-        videosList.map(v => [v.channel_id, { name: v.channel, channel_id: v.channel_id }])
+        videosList
+          .filter(v => v.channel_name && v.channel_id)
+          .map(v => [v.channel_id, { name: v.channel_name, channel_id: v.channel_id }])
       ).values()
     );
-    
-    return { categories: uniqueCategories, channels: uniqueChannels };
+    return uniqueChannels;
   };
 
-  // Load videos from Firebase
+  // Load videos from homepage collection
   const loadVideos = async (useCache = true) => {
     try {
       setLoading(true);
@@ -145,90 +132,79 @@ const VideosSection = () => {
       if (useCache) {
         const cached = getCachedData();
         if (cached) {
-          console.log('📦 Loading videos from cache');
+          console.log('📦 Loading homepage videos from cache');
           setVideos(cached.videos);
           setChannels(cached.channels);
-          
-          // CRITICAL FIX: Extract and set categories from cached videos
-          const { categories: extractedCategories } = extractCategoriesAndChannels(cached.videos);
-          setCategories(extractedCategories);
-          
           setLoading(false);
           return;
         }
       }
 
-      // Fetch from Firebase
-      console.log('🔄 Fetching videos from Firebase');
-      const q = query(
-        collection(db, "videos"),
-        orderBy("created_at", "desc")
-      );
+      // Fetch from Firebase homepage collection
+      console.log('🔄 Fetching videos from homepage collection');
+      const homepageDocRef = doc(db, "homepage", "homepage");
+      const homepageDoc = await getDoc(homepageDocRef);
 
-      const snapshot = await getDocs(q);
-      const fetchedVideos = snapshot.docs.map(doc => {
-        const data = doc.data();
-        const videoId = extractVideoId(data.video_url);
-        const category = assignCategory(data);
+      if (!homepageDoc.exists()) {
+        console.log('No homepage document found');
+        setVideos([]);
+        setChannels([]);
+        setLoading(false);
+        return;
+      }
+
+      const homepageData = homepageDoc.data();
+      const videosArray = homepageData.videos || [];
+
+      // Transform videos data
+      const transformedVideos = videosArray.map((video, index) => {
+        const videoId = extractVideoId(video.video_url);
         
         return {
-          id: doc.id,
-          title: data.title,
-          description: data.description,
-          thumbnail: data.thumbnail_url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
-          videoUrl: data.video_url,
-          embedUrl: getEmbedUrl(data.video_url),
-          category: category,
-          channel: data.channel_name,
-          channel_id: data.channel_id
+          id: video.video_id || `video-${index}`,
+          title: video.title || 'Untitled Video',
+          description: video.description || 'No description available',
+          thumbnail: video.thumbnail_url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+          videoUrl: video.video_url,
+          embedUrl: getEmbedUrl(video.video_url),
+          category: video.category || 'Uncategorized',
+          channel_name: video.channel_name,
+          channel_id: video.channel_id
         };
       });
 
-      // Extract categories and channels
-      const { categories: extractedCategories, channels: extractedChannels } = extractCategoriesAndChannels(fetchedVideos);
+      // Extract unique channels
+      const extractedChannels = extractChannels(transformedVideos);
       
-      setCategories(extractedCategories);
+      setVideos(transformedVideos);
       setChannels(extractedChannels);
-      setVideos(fetchedVideos);
       
-      // Cache the data with categories and channels
+      // Cache the data
       setCachedData({ 
-        videos: fetchedVideos, 
-        channels: extractedChannels,
-        categories: extractedCategories // Also cache categories for consistency
+        videos: transformedVideos, 
+        channels: extractedChannels
       });
       
-      console.log('✅ Videos loaded and cached successfully');
+      console.log('✅ Homepage videos loaded and cached successfully');
     } catch (error) {
-      console.error('Error loading videos:', error);
+      console.error('Error loading homepage videos:', error);
       setError('Failed to load videos. Please try again later.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Filter videos by category
-  useEffect(() => {
-    if (activeCategory === 'All') {
-      setFilteredVideos(videos);
-    } else {
-      setFilteredVideos(videos.filter(video => video.category === activeCategory));
-    }
-    setDisplayCount(VIDEOS_PER_PAGE); // Reset pagination when category changes
-  }, [activeCategory, videos]);
-
   // Initial load
   useEffect(() => {
     loadVideos();
   }, []);
 
-  const handleLoadMore = () => {
-    setDisplayCount(prev => prev + VIDEOS_PER_PAGE);
+  // Determine if the URL is external
+  const isExternalUrl = (url) => {
+    return url.startsWith('http://') || url.startsWith('https://');
   };
 
-  const displayedVideos = filteredVideos.slice(0, displayCount);
-  const hasMore = displayCount < filteredVideos.length;
-
+  // --- JSX Rendering ---
   return (
     <section className={`py-16 md:py-20 ${theme.backgrounds.white} relative overflow-hidden`}>
       {/* Background Elements */}
@@ -236,25 +212,55 @@ const VideosSection = () => {
       <div className={`absolute bottom-0 left-0 w-96 h-96 ${theme.backgrounds.primary} rounded-full filter blur-3xl opacity-40`}></div>
       
       <div className="container mx-auto px-4 max-w-7xl relative z-10">
-        {/* Section Header */}
-        <div className="text-center mb-10">
-          <div className={`inline-flex items-center gap-2 px-5 py-2 ${theme.badges.primary} rounded-full text-sm font-semibold mb-4 ${theme.shadows.lg}`}>
-            <Play className="w-4 h-4 fill-white" />
-            Video Library
+        {/* Section Header with View All Button */}
+        <div className="flex flex-col md:flex-row items-center justify-between mb-10 gap-6">
+          {/* Left Side - Header Content */}
+          <div className="text-center md:text-left flex-1">
+            <div className={`inline-flex items-center gap-2 px-5 py-2 ${theme.badges.primary} rounded-full text-sm font-semibold mb-4 ${theme.shadows.lg}`}>
+              <Play className="w-4 h-4 fill-white" />
+              Featured Videos
+            </div>
+            <h2 className={`text-4xl md:text-5xl font-black ${theme.text.primary} mb-3`}>
+              Trusted Voice in <span className={`bg-gradient-to-r ${theme.gradients.primary} bg-clip-text text-transparent`}>National Discourse</span>
+            </h2>
+            <p className={`${theme.text.secondary} text-lg max-w-2xl ${!loading && !error && videos.length > 0 ? 'md:mx-0' : 'mx-auto'}`}>
+              Regular expert commentary on leading news channels and platforms, providing insights on defence, geopolitics, international affairs, leadership, disaster management and current affairs.
+            </p>
           </div>
-          <h2 className={`text-4xl md:text-5xl font-black ${theme.text.primary} mb-3`}>
-            Educational <span className={`bg-gradient-to-r ${theme.gradients.primary} bg-clip-text text-transparent`}>Videos</span>
-          </h2>
-          <p className={`${theme.text.secondary} text-lg max-w-2xl mx-auto`}>
-            Watch expert guidance, strategies, and motivational content from our YouTube channels
-          </p>
+
+          {/* Right Side - View All Videos Button */}
+          {!loading && !error && videos.length > 0 && (
+            <div className="flex-shrink-0">
+              {isExternalUrl(VIEW_ALL_VIDEOS_URL) ? (
+                <a 
+                  href={VIEW_ALL_VIDEOS_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`inline-flex items-center gap-3 ${getButton('primary')} group whitespace-nowrap`}
+                >
+                  <Play className="w-5 h-5" />
+                  View All Videos
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </a>
+              ) : (
+                <Link
+                  href={VIEW_ALL_VIDEOS_URL}
+                  className={`inline-flex items-center gap-3 ${getButton('primary')} group whitespace-nowrap`}
+                >
+                  <Play className="w-5 h-5" />
+                  View All Videos
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Loading State */}
         {loading && (
           <div className="text-center py-20">
             <Loader className="w-12 h-12 text-orange-500 animate-spin mx-auto mb-4" />
-            <p className={`${theme.text.secondary} font-semibold`}>Loading videos...</p>
+            <p className={`${theme.text.secondary} font-semibold`}>Loading featured videos...</p>
           </div>
         )}
 
@@ -276,36 +282,11 @@ const VideosSection = () => {
         {/* Content */}
         {!loading && !error && (
           <>
-            {/* Category Filters - ALWAYS SHOW when videos exist */}
-            {videos.length > 0 && categories.length > 1 && (
-              <div className="mb-10">
-                <div className="flex items-center gap-3 mb-4">
-                  <Filter className={`w-5 h-5 ${theme.text.secondary}`} />
-                  <span className={`font-bold ${theme.text.primary}`}>Filter by Category:</span>
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  {categories.map((category) => (
-                    <button
-                      key={category}
-                      onClick={() => setActiveCategory(category)}
-                      className={`px-6 py-3 rounded-xl font-semibold transition-all ${theme.shadows.default} hover:shadow-xl hover:scale-105 ${
-                        activeCategory === category
-                          ? `bg-gradient-to-r ${theme.gradients.primary} ${theme.text.white}`
-                          : `${theme.backgrounds.white} ${theme.text.secondary} ${theme.borders.default} border-2 hover:${theme.borders.primary}`
-                      }`}
-                    >
-                      {category}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Videos Grid */}
-            {displayedVideos.length > 0 ? (
+            {videos.length > 0 ? (
               <>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-                  {displayedVideos.map((video) => (
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+                  {videos.map((video) => (
                     <div key={video.id} className="group">
                       <div className={`${theme.cards.elevated} rounded-2xl overflow-hidden transition-all duration-300`}>
                         {/* Video Thumbnail/Embed */}
@@ -343,9 +324,9 @@ const VideosSection = () => {
                                 </div>
                               </button>
 
-                              {/* Channel Badge */}
-                              <div className={`absolute top-3 left-3 px-3 py-1 bg-gradient-to-r ${theme.gradients.primary} ${theme.text.white} text-xs font-bold rounded-full ${theme.shadows.lg}`}>
-                                {video.channel}
+                              {/* Category Badge (Top Right) */}
+                              <div className={`absolute top-3 right-3 px-3 py-1 bg-gradient-to-r ${theme.gradients.primary} ${theme.text.white} text-xs font-bold rounded-full ${theme.shadows.lg}`}>
+                                {video.category}
                               </div>
                             </>
                           )}
@@ -353,11 +334,15 @@ const VideosSection = () => {
 
                         {/* Video Info */}
                         <div className="p-5">
-                          <div className="mb-3">
-                            <span className={`inline-block px-3 py-1 ${theme.badges.light} text-xs font-bold rounded-full`}>
-                              {video.category}
-                            </span>
-                          </div>
+                          {/* Channel Name */}
+                          {video.channel_name && (
+                            <div className="mb-3">
+                              <span className={`inline-block px-3 py-1 ${theme.badges.light} text-xs font-bold rounded-full`}>
+                                {video.channel_name}
+                              </span>
+                            </div>
+                          )}
+                          
                           <h3 className={`text-lg font-bold ${theme.text.primary} mb-3 line-clamp-2 group-hover:${theme.text.brand} transition-colors`}>
                             {video.title}
                           </h3>
@@ -370,74 +355,45 @@ const VideosSection = () => {
                   ))}
                 </div>
 
-                {/* Load More Button */}
-                {hasMore && (
-                  <div className="text-center mb-12">
-                    <button
-                      onClick={handleLoadMore}
-                      className={`inline-flex items-center gap-2 ${getButton('primary')}`}
-                    >
-                      <ChevronDown className="w-5 h-5" />
-                      Load More Videos ({filteredVideos.length - displayCount} more)
-                    </button>
+                {/* YouTube Channels Section */}
+                {channels.length > 0 && (
+                  <div className={`bg-gradient-to-br ${theme.gradients.light} rounded-3xl p-8 md:p-10 ${theme.shadows.xl} ${theme.borders.light} border`}>
+                    <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+                      {/* Left Side - Channels */}
+                      <div className="flex-1">
+                        <h3 className={`text-2xl font-black ${theme.text.primary} mb-2 flex items-center gap-3`}>
+                          <Youtube className={`w-8 h-8 ${theme.text.brand}`} />
+                          Subscribe to Our Channels
+                        </h3>
+                        <p className={`${theme.text.secondary} mb-5`}>Get notified about new educational content and live sessions</p>
+                        
+                        <div className="flex flex-col sm:flex-row gap-4">
+                          {channels.map((channel, idx) => (
+                            <a 
+                              key={channel.channel_id}
+                              href={`https://www.youtube.com/channel/${channel.channel_id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`inline-flex items-center justify-center gap-3 ${getButton(idx === 0 ? 'primary' : 'outline')} group`}
+                            >
+                              <Youtube className="w-5 h-5" />
+                              {channel.name}
+                              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </>
             ) : (
               <div className="text-center py-20">
                 <Play className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">No videos found</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">No featured videos</h3>
                 <p className={`${theme.text.secondary}`}>
-                  {activeCategory === 'All' 
-                    ? 'No videos available at the moment.'
-                    : `No videos found in the "${activeCategory}" category.`}
+                  No videos have been added to the homepage yet.
                 </p>
-              </div>
-            )}
-
-            {/* YouTube Channels */}
-            {videos.length > 0 && channels.length > 0 && (
-              <div className={`bg-gradient-to-br ${theme.gradients.light} rounded-3xl p-8 md:p-10 ${theme.shadows.xl} ${theme.borders.light} border`}>
-                <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
-                  {/* Left Side - Channels */}
-                  <div className="flex-1">
-                    <h3 className={`text-2xl font-black ${theme.text.primary} mb-2 flex items-center gap-3`}>
-                      <Youtube className={`w-8 h-8 ${theme.text.brand}`} />
-                      Subscribe to Our Channels
-                    </h3>
-                    <p className={`${theme.text.secondary} mb-5`}>Get notified about new educational content and live sessions</p>
-                    
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      {channels.map((channel, idx) => (
-                        <a 
-                          key={channel.channel_id}
-                          href={`https://www.youtube.com/channel/${channel.channel_id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`inline-flex items-center justify-center gap-3 ${getButton(idx === 0 ? 'primary' : 'outline')} group`}
-                        >
-                          <Youtube className="w-5 h-5" />
-                          {channel.name}
-                          <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Right Side - View All Button */}
-                  <div className={`lg:border-l ${theme.borders.dark} lg:pl-8`}>
-                    <a
-                      href={channels.length > 0 ? `https://www.youtube.com/channel/${channels[0].channel_id}` : '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`inline-flex items-center gap-3 ${getButton('dark')} group whitespace-nowrap`}
-                    >
-                      <Play className="w-6 h-6" />
-                      View All Videos
-                      <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-                    </a>
-                  </div>
-                </div>
               </div>
             )}
           </>

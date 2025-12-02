@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Video, Edit2, Trash2, X, Save, RefreshCw, Youtube, Loader, Link, AlertCircle, ChevronDown, BookOpen } from 'lucide-react';
+import { Video, Edit2, Trash2, X, Save, RefreshCw, Youtube, Loader, Link, AlertCircle, ChevronDown, BookOpen, Star } from 'lucide-react';
 import { db } from '../../../firebase/firebaseConfig';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, limit, startAfter, where, getDoc, setDoc } from 'firebase/firestore';
 
@@ -51,6 +51,8 @@ const AdminVideosPage = () => {
   const [initialLoading, setInitialLoading] = useState(true);
   const [lastFetchTime, setLastFetchTime] = useState(null);
   const [fetchError, setFetchError] = useState(null);
+
+  const [homepageVideos, setHomepageVideos] = useState([]);
 
   // Pagination state per category/playlist
   const [categoryPagination, setCategoryPagination] = useState({});
@@ -709,6 +711,66 @@ const AdminVideosPage = () => {
     }
   };
 
+  const handleDisplayOnHomepage = async (video) => {
+    // Check if video is already on homepage
+    const isOnHomepage = homepageVideos.some(v => v.video_id === video.video_id);
+
+    const confirmMessage = isOnHomepage
+      ? 'Remove this video from homepage display?'
+      : 'Display this video on the homepage?';
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const homepageDocRef = doc(db, "homepage", "homepage");
+
+      let updatedVideos;
+
+      if (isOnHomepage) {
+        // Remove video from array
+        updatedVideos = homepageVideos.filter(v => v.video_id !== video.video_id);
+      } else {
+        // Add video to array
+        const videoData = {
+          video_id: video.video_id,
+          title: video.title,
+          video_url: video.video_url,
+          category: video.category || video.category_name,
+          thumbnail_url: video.thumbnail_url,
+          channel_name: video.channel_name,
+          description: video.description,
+          added_at: new Date().toISOString(),
+        };
+        updatedVideos = [...homepageVideos, videoData];
+      }
+
+      // Update Firestore
+      await setDoc(homepageDocRef, {
+        videos: updatedVideos,
+        updated_at: new Date().toISOString()
+      });
+
+      // Update local state
+      setHomepageVideos(updatedVideos);
+
+      alert(isOnHomepage
+        ? 'Video removed from homepage!'
+        : 'Video added to homepage display!'
+      );
+    } catch (error) {
+      console.error('Error updating homepage video:', error);
+      alert('Failed to update homepage video: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+
   const startEditVideo = (video) => {
     setEditingVideo(video);
     setVideoForm({
@@ -743,6 +805,13 @@ const AdminVideosPage = () => {
         const lastFetch = localStorage.getItem('videos_last_fetch');
         if (lastFetch) {
           setLastFetchTime(lastFetch);
+        }
+
+        // Load homepage videos
+        const homepageDoc = await getDoc(doc(db, "homepage", "homepage"));
+        if (homepageDoc.exists()) {
+          const data = homepageDoc.data();
+          setHomepageVideos(data.videos || []);
         }
       } catch (error) {
         console.error('Error loading data:', error);
@@ -1173,6 +1242,30 @@ const AdminVideosPage = () => {
                                 <Trash2 className="w-4 h-4" />
                                 Delete
                               </button>
+                              {(() => {
+                                const isOnHomepage = homepageVideos.some(v => v.video_id === video.video_id);
+                                return (
+                                  <button
+                                    onClick={() => handleDisplayOnHomepage(video)}
+                                    className={`flex-1 inline-flex items-center justify-center gap-2 ${isOnHomepage
+                                        ? 'bg-red-500 hover:bg-red-600'
+                                        : 'bg-green-500 hover:bg-green-600'
+                                      } text-white rounded-xl py-2 px-4 font-bold transition-all`}
+                                  >
+                                    {isOnHomepage ? (
+                                      <>
+                                        <X className="w-4 h-4" />
+                                        Remove
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Star className="w-4 h-4" />
+                                        Display
+                                      </>
+                                    )}
+                                  </button>
+                                );
+                              })()}
                             </div>
                           </div>
                         </div>
