@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { BookOpen, Search, ShoppingBag, ArrowRight, Loader } from 'lucide-react';
 import { db } from '../../firebase/firebaseConfig';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
@@ -35,10 +35,10 @@ const getButton = (variant = 'primary') => {
   return variants[variant];
 };
 
-const BooksPage = () => {
+// Separate component that uses useSearchParams
+const BooksContent = () => {
   const searchParams = useSearchParams();
   const defaultCategory = searchParams.get('category') || 'All';
-
 
   const [selectedCategory, setSelectedCategory] = useState(defaultCategory);
   const [searchQuery, setSearchQuery] = useState('');
@@ -48,12 +48,12 @@ const BooksPage = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-  fetchBooksFromFirebase();
-  const urlCategory = searchParams.get('category');
-  if (urlCategory) {
-    setSelectedCategory(urlCategory);
-  }
-}, [searchParams]);
+    fetchBooksFromFirebase();
+    const urlCategory = searchParams.get('category');
+    if (urlCategory) {
+      setSelectedCategory(urlCategory);
+    }
+  }, [searchParams]);
 
   // Fetch books from Firebase with caching
   const fetchBooksFromFirebase = async () => {
@@ -137,7 +137,6 @@ const BooksPage = () => {
       alert('Purchase link not available for this book.');
     }
   };
-
 
   const filteredBooks = books.filter(book => {
     const matchesCategory = selectedCategory === 'All' || book.book_category === selectedCategory;
@@ -286,6 +285,22 @@ const BooksPage = () => {
         </div>
       </section>
     </div>
+  );
+};
+
+// Main component with Suspense boundary
+const BooksPage = () => {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 pt-20">
+        <div className="flex flex-col items-center justify-center py-40">
+          <Loader className="w-16 h-16 text-orange-500 animate-spin mb-4" />
+          <p className="text-gray-600 font-semibold text-lg">Loading books...</p>
+        </div>
+      </div>
+    }>
+      <BooksContent />
+    </Suspense>
   );
 };
 
