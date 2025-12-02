@@ -1,22 +1,17 @@
 import React from 'react';
-import { CheckCircle, Target, Download, Star } from 'lucide-react';
+import { CheckCircle, Download, Star } from 'lucide-react';
 import { theme, getButton } from '../app/theme/theme';
-import { useLanguage } from '../context/LanguageContext'; // Import the hook
+import { useLanguage } from '../context/LanguageContext';
 
 const AboutSection = () => {
-  const { t } = useLanguage(); // Use the language context
+  const { t } = useLanguage();
+  const [showVideo, setShowVideo] = React.useState(false);
 
   const achievements = [
-    { icon: Target, text: t.achievement1 },
+    { icon: Star, text: t.achievement1 },
     { icon: CheckCircle, text: t.achievement2 },
     { icon: CheckCircle, text: t.achievement3 },
     { icon: CheckCircle, text: t.achievement4 }
-  ];
-
-  const stats = [
-    { value: "25+", label: t.yearsExperience },
-    { value: "5000+", label: t.studentsMentored },
-    { value: "98%", label: t.successRate }
   ];
 
   return (
@@ -45,39 +40,65 @@ const AboutSection = () => {
               {/* Decorative Background */}
               <div className="absolute -inset-4 bg-gradient-to-br from-orange-100 to-orange-50 rounded-3xl opacity-50 group-hover:opacity-70 transition-opacity"></div>
               
-              <div className={`relative rounded-2xl overflow-hidden ${theme.shadows.xl}`}>
-                <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-                  <iframe
-                    className="absolute top-0 left-0 w-full h-full"
-                    src="https://www.youtube.com/embed/D85gYG54AUk?si=aWGQgYngWQuPfHno"
-                    title="YouTube video player"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  ></iframe>
+              {/* Badge */}
+              <div className="absolute -top-4 -right-4 z-10">
+                <div className={`bg-gradient-to-r ${theme.gradients.primary} ${theme.text.white} px-4 py-2 rounded-full ${theme.shadows.xl} text-center`}>
+                  <div className="text-xs font-bold uppercase tracking-wide">{t.badgeLine1}</div>
+                  <div className="text-[10px] font-semibold uppercase tracking-wider">{t.badgeLine2}</div>
                 </div>
               </div>
-            </div>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-3 gap-4 mt-6">
-              {stats.map((stat, index) => (
-                <div key={index} className={`${theme.backgrounds.white} rounded-xl p-4 ${theme.shadows.lg} text-center ${theme.borders.light} border`}>
-                  <div className={`text-2xl md:text-3xl font-black ${theme.text.brand} mb-1`}>
-                    {stat.value}
-                  </div>
-                  <div className={`text-xs ${theme.text.secondary} font-medium`}>
-                    {stat.label}
-                  </div>
+              
+              <div className={`relative rounded-2xl overflow-hidden ${theme.shadows.xl}`}>
+                <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                  {!showVideo ? (
+                    <div 
+                      className="absolute top-0 left-0 w-full h-full cursor-pointer group/thumb"
+                      onClick={() => setShowVideo(true)}
+                    >
+                      {/* Thumbnail Image */}
+                      <img
+                        src="/ThumbnailImage.jpg"
+                        alt="Video Thumbnail"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = "https://img.youtube.com/vi/D85gYG54AUk/maxresdefault.jpg";
+                        }}
+                      />
+                      
+                      {/* Play Button Overlay */}
+                      <div className="absolute inset-0 flex items-center justify-center bg-opacity-30 group-hover/thumb:bg-opacity-40 transition-all">
+                        <div className={`w-20 h-20 rounded-full flex items-center justify-center group-hover/thumb:scale-110 transition-transform bg-gradient-to-r ${theme.gradients.primary} ${theme.shadows.xl}`}>
+                          <div className="w-0 h-0 border-l-[20px] border-l-white border-t-[12px] border-t-transparent border-b-[12px] border-b-transparent ml-1" />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <iframe
+                      className="absolute top-0 left-0 w-full h-full"
+                      src="https://www.youtube.com/embed/D85gYG54AUk?si=aWGQgYngWQuPfHno&autoplay=1"
+                      title="YouTube video player"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  )}
                 </div>
-              ))}
+              </div>
             </div>
           </div>
 
           {/* Right Side - Content */}
           <div className="space-y-6">
+            {/* Description */}
+            <div className="pt-2">
+              <p className={`text-lg ${theme.text.secondary} leading-relaxed`}>
+                {t.aboutDescription}
+              </p>
+            </div>
+
             {/* Achievements List */}
-            <div className="space-y-4 pt-2">
+            <div className="space-y-4">
               <h3 className={`text-xl font-bold ${theme.text.primary} mb-4`}>
                 {t.keyAchievements}
               </h3>
