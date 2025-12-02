@@ -1,9 +1,9 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { FileText, Search, Loader, ChevronDown, ExternalLink, Tag, Calendar } from 'lucide-react';
 import { db } from '../../firebase/firebaseConfig';
 import { collection, getDocs, query, orderBy, limit, startAfter } from 'firebase/firestore';
-import { useSearchParams } from 'next/navigation'; // Add this import
+import { useSearchParams } from 'next/navigation';
 
 // Theme configuration
 const theme = {
@@ -33,7 +33,8 @@ const getButton = (variant = 'primary') => {
 
 const ARTICLES_PER_PAGE = 9;
 
-const AllArticlesPage = () => {
+// Separate component that uses useSearchParams
+const ArticlesContent = () => {
   // Get URL parameters
   const searchParams = useSearchParams();
   const urlCategory = searchParams?.get('category');
@@ -486,6 +487,22 @@ const AllArticlesPage = () => {
         </div>
       </section>
     </div>
+  );
+};
+
+// Main component with Suspense boundary
+const AllArticlesPage = () => {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 pt-20">
+        <div className="flex flex-col items-center justify-center py-40">
+          <Loader className="w-16 h-16 text-orange-500 animate-spin mb-4" />
+          <p className="text-gray-600 font-semibold text-lg">Loading articles...</p>
+        </div>
+      </div>
+    }>
+      <ArticlesContent />
+    </Suspense>
   );
 };
 
