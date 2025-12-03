@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 
-const NewsTicker = () => {
+const NewsTicker = ({ homepageData }) => {
   const [newsItems, setNewsItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -24,48 +24,28 @@ const NewsTicker = () => {
     return null;
   };
 
-  const setCachedData = (key, data) => {
-    try {
-      localStorage.setItem(key, JSON.stringify(data));
-      localStorage.setItem(`${key}_timestamp`, Date.now().toString());
-    } catch (error) {
-      console.error('Cache write error:', error);
+
+  useEffect(() => {
+    if (!homepageData) {
+      setLoading(true);
+      return;
     }
-  };
-  // --- End Cache helpers ---
 
-  const fetchAndCacheTickerData = async () => {
     try {
-      // Fetch from 'homepage/homepage' doc
-      const tickerDocRef = doc(db, "homepage", "homepage");
-      const tickerSnapshot = await getDoc(tickerDocRef);
-
-      if (!tickerSnapshot.exists()) {
-        setNewsItems([]);
-        setLoading(false);
-        return;
-      }
-
-      const data = tickerSnapshot.data();
       let items = [];
+      const newsTickerItems = homepageData.news_ticker || [];
 
-      // --- MODIFICATION: Access news_ticker array directly ---
-      // This assumes 'news_ticker' is an array of objects with title/video_url fields
-      const newsTickerItems = data.news_ticker || [];
-
-      // 1. Add Video/News Items (These come first)
+      // 1. Add Video/News Items
       newsTickerItems.forEach(item => {
-        // Check if it's a valid item with title and URL
         if (item.title && item.title.trim() !== '' && item.video_url && item.video_url.trim() !== '') {
           items.push({
-            // Use '🎥' icon for video-like content
             text: `🎥 ${item.title}`,
             link: item.video_url
           });
         }
       });
 
-      // 2. Add Static Text Items (These come after and are added separately)
+      // 2. Add Static Text Items
       const staticTexts = [
         'Military Leader',
         'Mentor',
@@ -79,44 +59,19 @@ const NewsTicker = () => {
 
       staticTexts.forEach(text => {
         items.push({
-          // Using a star icon and setting link to '#'
           text: `⭐ ${text}`, 
           link: '#' 
         });
       });
       
       setNewsItems(items);
-      setCachedData('news_ticker_data', items);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching ticker data:', error);
+      console.error('Error processing ticker data:', error);
       setNewsItems([]);
       setLoading(false);
     }
-  };
-
-  const fetchTickerData = async () => {
-    try {
-      const cachedData = getCachedData('news_ticker_data', 5 * 60 * 1000); 
-      
-      if (cachedData) {
-        setNewsItems(cachedData);
-        setLoading(false);
-        fetchAndCacheTickerData();
-        return;
-      }
-
-      await fetchAndCacheTickerData();
-    } catch (error) {
-      console.error('Error fetching ticker data:', error);
-      setNewsItems([]);
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchTickerData();
-  }, []);
+  }, [homepageData]);
 
   if (loading) {
     return (
@@ -141,13 +96,13 @@ const NewsTicker = () => {
           <span className="hidden sm:inline">Latest Updates</span>
           <span className="sm:hidden">News</span>
         </div>
-        
+
         {/* Scrolling News Container */}
         <div className="flex-1 overflow-hidden ml-2 md:ml-4 relative">
           <div className="ticker-wrapper">
             {/* Duplicating the array multiple times to ensure seamless scrolling */}
             {newsItems.concat(newsItems).concat(newsItems).concat(newsItems).concat(newsItems).map((news, index) => (
-              <a 
+              <a
                 key={index}
                 href={news.link}
                 target={news.link.startsWith('http') ? "_blank" : "_self"}
