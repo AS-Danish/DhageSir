@@ -98,7 +98,7 @@ const HeroSection = () => {
                     <ArrowRight className="w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-1 transition-transform" />
                   </button>
                   <button className="px-6 md:px-8 py-3 md:py-4 border-2 border-white/30 text-white rounded-lg font-semibold hover:bg-white/10 transition flex items-center justify-center gap-2 text-sm md:text-base"
-                   onClick={() => window.open("https://www.youtube.com/watch?v=D85gYG54AUk", "_blank")}
+                   onClick={() => window.open("https://www.youtube.com/watch?v=0svFF1TDKdU", "_blank")}
                    >
                     <Play className="w-4 h-4 md:w-5 md:h-5" />
                     {t.heroVideoButton}
