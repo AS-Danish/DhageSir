@@ -68,7 +68,7 @@ const ImprovedNavbar = () => {
     },
     {
       label: t.podcast || 'Podcast',
-      href: "/AllPodcasts",
+      href: "/#podcasts",
       type: "link"
     },
     {
