@@ -53,21 +53,27 @@ const AllStudyMaterialsPage = () => {
   };
 
   // Get file icon
+  // Get file icon
   const getFileIcon = (fileType) => {
     if (fileType?.includes('pdf')) {
       return '📄';
     } else if (fileType?.includes('presentation') || fileType?.includes('powerpoint')) {
       return '📊';
+    } else if (fileType?.includes('word') || fileType?.includes('document')) {
+      return '📝'; // Word icon
     }
     return '📎';
   };
 
+  // Get file type label
   // Get file type label
   const getFileTypeLabel = (fileType) => {
     if (fileType?.includes('pdf')) {
       return 'PDF';
     } else if (fileType?.includes('presentation') || fileType?.includes('powerpoint')) {
       return 'PowerPoint';
+    } else if (fileType?.includes('word') || fileType?.includes('document')) {
+      return 'Word Document'; // Word label
     }
     return 'Document';
   };
@@ -78,7 +84,7 @@ const AllStudyMaterialsPage = () => {
       // Check localStorage cache first (5-minute TTL)
       const cachedMaterials = localStorage.getItem('all_materials_cache');
       const cacheTimestamp = localStorage.getItem('all_materials_cache_timestamp');
-      
+
       // Use cache if it's less than 5 minutes old
       if (cachedMaterials && cacheTimestamp) {
         const cacheAge = Date.now() - parseInt(cacheTimestamp);
@@ -93,7 +99,7 @@ const AllStudyMaterialsPage = () => {
           return;
         }
       }
-      
+
       // No valid cache, fetch from Firebase
       await fetchAndCacheMaterials();
     } catch (err) {
@@ -117,13 +123,13 @@ const AllStudyMaterialsPage = () => {
         orderBy("created_at", "desc"),
         limit(MATERIALS_PER_PAGE)
       );
-      
+
       const querySnapshot = await getDocs(materialsQuery);
-      
+
       // Check if data came from Firebase cache or server
       const source = querySnapshot.metadata.fromCache ? 'cache' : 'server';
       console.log(`📦 Materials loaded from ${source}`);
-      
+
       const materialsData = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -146,7 +152,7 @@ const AllStudyMaterialsPage = () => {
       };
       localStorage.setItem('all_materials_cache', JSON.stringify(cacheData));
       localStorage.setItem('all_materials_cache_timestamp', Date.now().toString());
-      
+
       console.log('✅ Materials fetched and cached successfully');
     } catch (err) {
       console.error('Error fetching materials from Firebase:', err);
@@ -170,11 +176,11 @@ const AllStudyMaterialsPage = () => {
       );
 
       const querySnapshot = await getDocs(materialsQuery);
-      
+
       // Check if data came from cache or server
       const source = querySnapshot.metadata.fromCache ? 'cache' : 'server';
       console.log(`📦 More materials loaded from ${source}`);
-      
+
       const newMaterials = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -225,7 +231,7 @@ const AllStudyMaterialsPage = () => {
         <div className="flex flex-col items-center justify-center py-40">
           <FileText className="w-16 h-16 text-gray-300 mb-4" />
           <p className="text-red-600 font-semibold mb-4 text-lg">{error}</p>
-          <button 
+          <button
             onClick={fetchMaterialsFromFirebase}
             className={getButton('primary')}
           >
@@ -278,7 +284,7 @@ const AllStudyMaterialsPage = () => {
           <div className="space-y-6">
             {filteredMaterials.map((material, index) => {
               const uniqueKey = `${material.id}-${index}`;
-              
+
               return (
                 <div key={uniqueKey} className="group">
                   <div className={`${theme.cards.elevated} rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1`}>
