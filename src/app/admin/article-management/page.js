@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { FileText, Plus, Edit2, Trash2, X, Save, Upload, Link, FolderPlus, Tag, Loader } from 'lucide-react';
+import { FileText, Plus, Edit2, Trash2, X, Save, Upload, FolderPlus, Tag, Loader, Star } from 'lucide-react';
 import { db, storage } from '../../../firebase/firebaseConfig';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, setDoc, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -34,16 +34,16 @@ const AdminArticlesPage = () => {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
-  // Articles State
   const [articles, setArticles] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [viewingImage, setViewingImage] = useState(null);
+  const [homepageArticles, setHomepageArticles] = useState([]);
 
-  // Form State
+  // Form State - NO article_link
   const [articleForm, setArticleForm] = useState({
     title: '',
     description: '',
     article_category: '',
-    article_link: '',
     preview_image_url: '',
   });
 
@@ -54,21 +54,21 @@ const AdminArticlesPage = () => {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
 
-  // Load categories from Firestore with caching
+  // Load categories from Firestore
   const loadCategories = async () => {
-  try {
-    const q = query(collection(db, "categories"), orderBy("created_at", "desc"));
-    const querySnapshot = await getDocs(q);
-    const categoriesData = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    setCategories(categoriesData);
-  } catch (error) {
-    console.error('Error loading categories:', error);
-    alert('Failed to load categories: ' + error.message);
-  }
-};
+    try {
+      const q = query(collection(db, "categories"), orderBy("created_at", "desc"));
+      const querySnapshot = await getDocs(q);
+      const categoriesData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setCategories(categoriesData);
+    } catch (error) {
+      console.error('Error loading categories:', error);
+      alert('Failed to load categories: ' + error.message);
+    }
+  };
 
   // Fetch and cache articles
   const fetchAndCacheArticles = async () => {
@@ -78,33 +78,13 @@ const AdminArticlesPage = () => {
       id: doc.id,
       ...doc.data()
     }));
-    
+
     setArticles(articlesData);
-    
-    // Cache the data
-    localStorage.setItem('articles_cache', JSON.stringify(articlesData));
-    localStorage.setItem('articles_cache_timestamp', Date.now().toString());
   };
 
-  // Load articles from Firestore with caching
+  // Load articles from Firestore
   const loadArticles = async () => {
     try {
-      // Try to load from cache first
-      const cachedArticles = localStorage.getItem('articles_cache');
-      const cacheTimestamp = localStorage.getItem('articles_cache_timestamp');
-      
-      // Use cache if it's less than 5 minutes old
-      if (cachedArticles && cacheTimestamp) {
-        const cacheAge = Date.now() - parseInt(cacheTimestamp);
-        if (cacheAge < 5 * 60 * 1000) { // 5 minutes
-          setArticles(JSON.parse(cachedArticles));
-          // Still fetch in background to update
-          fetchAndCacheArticles();
-          return;
-        }
-      }
-      
-      // Fetch fresh data
       await fetchAndCacheArticles();
     } catch (error) {
       console.error('Error loading articles:', error);
@@ -112,23 +92,66 @@ const AdminArticlesPage = () => {
     }
   };
 
+  // Handle Display on Homepage
+  const handleDisplayOnHomepage = async (article) => {
+    const isOnHomepage = homepageArticles.some((a) => a.id === article.id);
+
+    if (!window.confirm(isOnHomepage ? "Remove from homepage?" : "Display on homepage?")) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const homepageDocRef = doc(db, "homepage", "homepage");
+      const homepageSnapshot = await getDoc(homepageDocRef);
+      const existingData = homepageSnapshot.exists() ? homepageSnapshot.data() : {};
+
+      const currentArticles = existingData.articles || [];
+      let updatedArticles;
+
+      if (isOnHomepage) {
+        updatedArticles = currentArticles.filter((a) => a.id !== article.id);
+      } else {
+        const articleData = {
+          id: article.id,
+          title: article.title,
+          preview_image_url: article.preview_image_url,
+          description: article.description,
+          article_category: article.article_category,
+          added_at: new Date().toISOString(),
+        };
+        updatedArticles = [...currentArticles, articleData];
+      }
+
+      await setDoc(homepageDocRef, {
+        ...existingData,
+        articles: updatedArticles,
+        updated_at: new Date().toISOString(),
+      });
+
+      setHomepageArticles(updatedArticles);
+      alert(isOnHomepage ? "Removed from homepage!" : "Added to homepage!");
+    } catch (error) {
+      console.error("Error updating homepage:", error);
+      alert("Failed to update homepage: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Upload image to Firebase Storage
   const uploadImage = async (file) => {
     try {
       setUploadingImage(true);
-      
-      // Create a unique filename with sanitized name
+
       const timestamp = Date.now();
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
       const fileName = `${timestamp}_${sanitizedFileName}`;
       const storageRef = ref(storage, `article-images/${fileName}`);
-      
-      // Upload file
+
       const snapshot = await uploadBytes(storageRef, file);
-      
-      // Get download URL
       const downloadURL = await getDownloadURL(snapshot.ref);
-      
+
       return downloadURL;
     } catch (error) {
       console.error('Error uploading image:', error);
@@ -143,44 +166,6 @@ const AdminArticlesPage = () => {
     }
   };
 
-  // Update news ticker collection (single document, articles only)
-const updateNewsTicker = async (newArticle) => {
-  try {
-    const tickerDocRef = doc(db, "news_ticker", "latest");
-    const tickerSnapshot = await getDoc(tickerDocRef);
-    
-    let tickerData = {
-      latest_article_title: '',
-      latest_article_url: '',
-      second_article_title: '',
-      second_article_url: '',
-      latest_book_title: '',
-      latest_book_url: '',
-      second_book_title: '',
-      second_book_url: '',
-    };
-    
-    // Get existing data if document exists
-    if (tickerSnapshot.exists()) {
-      tickerData = { ...tickerData, ...tickerSnapshot.data() };
-    }
-    
-    // Move current latest article to second position
-    tickerData.second_article_title = tickerData.latest_article_title;
-    tickerData.second_article_url = tickerData.latest_article_url;
-    
-    // Set new article as latest
-    tickerData.latest_article_title = newArticle.title;
-    tickerData.latest_article_url = newArticle.article_link || '';
-    
-    // Save to Firestore (book fields remain untouched)
-    await setDoc(tickerDocRef, tickerData);
-    
-  } catch (error) {
-    console.error('Error updating news ticker:', error);
-  }
-};
-
   // Add article to Firestore
   const handleAddArticle = async () => {
     if (!articleForm.title || !articleForm.description || !articleForm.article_category) {
@@ -190,10 +175,9 @@ const updateNewsTicker = async (newArticle) => {
 
     try {
       setLoading(true);
-      
+
       let imageUrl = articleForm.preview_image_url;
-      
-      // Upload image if file is selected
+
       if (imageFile) {
         imageUrl = await uploadImage(imageFile);
       }
@@ -208,7 +192,6 @@ const updateNewsTicker = async (newArticle) => {
         title: articleForm.title,
         description: articleForm.description,
         article_category: articleForm.article_category,
-        article_link: articleForm.article_link || '',
         preview_image_url: imageUrl,
         created_at: new Date().toISOString(),
       };
@@ -216,8 +199,6 @@ const updateNewsTicker = async (newArticle) => {
       const docRef = await addDoc(collection(db, "articles"), articleData);
       const newArticle = { id: docRef.id, ...articleData };
 
-      await updateNewsTicker(newArticle);
-      
       setArticles([newArticle, ...articles]);
 
       resetArticleForm();
@@ -240,10 +221,9 @@ const updateNewsTicker = async (newArticle) => {
 
     try {
       setLoading(true);
-      
+
       let imageUrl = articleForm.preview_image_url;
-      
-      // Upload new image if file is selected
+
       if (imageFile) {
         imageUrl = await uploadImage(imageFile);
       }
@@ -252,21 +232,43 @@ const updateNewsTicker = async (newArticle) => {
         title: articleForm.title,
         description: articleForm.description,
         article_category: articleForm.article_category,
-        article_link: articleForm.article_link || '',
         preview_image_url: imageUrl,
         updated_at: new Date().toISOString(),
       };
 
       await updateDoc(doc(db, "articles", editingArticle.id), articleData);
 
-      const updatedArticle = { id: editingArticle.id, ...editingArticle, ...articleData };
-
-      // ADD THIS LINE:
-      await updateNewsTicker(updatedArticle);
-      
-      setArticles(articles.map(article => 
+      setArticles(articles.map(article =>
         article.id === editingArticle.id ? { ...article, ...articleData } : article
       ));
+
+      // Update homepage articles if this article is displayed
+      const isOnHomepage = homepageArticles.some(a => a.id === editingArticle.id);
+      if (isOnHomepage) {
+        const updatedHomepageArticles = homepageArticles.map(a =>
+          a.id === editingArticle.id
+            ? {
+                ...a,
+                title: articleData.title,
+                description: articleData.description,
+                article_category: articleData.article_category,
+                preview_image_url: articleData.preview_image_url,
+              }
+            : a
+        );
+        
+        const homepageDocRef = doc(db, "homepage", "homepage");
+        const homepageSnapshot = await getDoc(homepageDocRef);
+        const existingData = homepageSnapshot.exists() ? homepageSnapshot.data() : {};
+        
+        await setDoc(homepageDocRef, {
+          ...existingData,
+          articles: updatedHomepageArticles,
+          updated_at: new Date().toISOString(),
+        });
+        
+        setHomepageArticles(updatedHomepageArticles);
+      }
 
       resetArticleForm();
       setEditingArticle(null);
@@ -287,11 +289,29 @@ const updateNewsTicker = async (newArticle) => {
 
     try {
       setLoading(true);
-      
+
       await deleteDoc(doc(db, "articles", id));
-      
+
       setArticles(articles.filter(article => article.id !== id));
-      
+
+      // Remove from homepage if displayed
+      const isOnHomepage = homepageArticles.some(a => a.id === id);
+      if (isOnHomepage) {
+        const updatedHomepageArticles = homepageArticles.filter(a => a.id !== id);
+        
+        const homepageDocRef = doc(db, "homepage", "homepage");
+        const homepageSnapshot = await getDoc(homepageDocRef);
+        const existingData = homepageSnapshot.exists() ? homepageSnapshot.data() : {};
+        
+        await setDoc(homepageDocRef, {
+          ...existingData,
+          articles: updatedHomepageArticles,
+          updated_at: new Date().toISOString(),
+        });
+        
+        setHomepageArticles(updatedHomepageArticles);
+      }
+
       alert('Article deleted successfully!');
     } catch (error) {
       console.error('Error deleting article:', error);
@@ -308,11 +328,10 @@ const updateNewsTicker = async (newArticle) => {
       return;
     }
 
-    // Check for duplicate category names
     const isDuplicate = categories.some(
       cat => cat.name.toLowerCase() === categoryForm.name.trim().toLowerCase()
     );
-    
+
     if (isDuplicate) {
       alert('A category with this name already exists');
       return;
@@ -320,7 +339,7 @@ const updateNewsTicker = async (newArticle) => {
 
     try {
       setLoading(true);
-      
+
       const categoryData = {
         name: categoryForm.name.trim(),
         created_at: new Date().toISOString(),
@@ -328,7 +347,7 @@ const updateNewsTicker = async (newArticle) => {
 
       const docRef = await addDoc(collection(db, "categories"), categoryData);
       const newCategory = { id: docRef.id, ...categoryData };
-      
+
       setCategories([newCategory, ...categories]);
 
       resetCategoryForm();
@@ -349,12 +368,11 @@ const updateNewsTicker = async (newArticle) => {
       return;
     }
 
-    // Check for duplicate category names (excluding current)
     const isDuplicate = categories.some(
-      cat => cat.id !== editingCategory.id && 
-      cat.name.toLowerCase() === categoryForm.name.trim().toLowerCase()
+      cat => cat.id !== editingCategory.id &&
+        cat.name.toLowerCase() === categoryForm.name.trim().toLowerCase()
     );
-    
+
     if (isDuplicate) {
       alert('A category with this name already exists');
       return;
@@ -362,35 +380,33 @@ const updateNewsTicker = async (newArticle) => {
 
     try {
       setLoading(true);
-      
+
       const oldCategoryName = editingCategory.name;
       const newCategoryName = categoryForm.name.trim();
-      
+
       const categoryData = {
         name: newCategoryName,
         updated_at: new Date().toISOString(),
       };
 
       await updateDoc(doc(db, "categories", editingCategory.id), categoryData);
-      
-      // Update category name in all articles that use this category
+
       const articlesToUpdate = articles.filter(article => article.article_category === oldCategoryName);
-      
+
       for (const article of articlesToUpdate) {
         await updateDoc(doc(db, "articles", article.id), {
           article_category: newCategoryName,
           updated_at: new Date().toISOString(),
         });
       }
-      
-      // Update local state
-      setCategories(categories.map(cat => 
+
+      setCategories(categories.map(cat =>
         cat.id === editingCategory.id ? { ...cat, ...categoryData } : cat
       ));
-      
-      setArticles(articles.map(article => 
-        article.article_category === oldCategoryName 
-          ? { ...article, article_category: newCategoryName } 
+
+      setArticles(articles.map(article =>
+        article.article_category === oldCategoryName
+          ? { ...article, article_category: newCategoryName }
           : article
       ));
 
@@ -413,11 +429,10 @@ const updateNewsTicker = async (newArticle) => {
 
     try {
       setLoading(true);
-      
-      // Check if any articles use this category
+
       const categoryToDelete = categories.find(c => c.id === id);
       const articlesWithCategory = articles.filter(article => article.article_category === categoryToDelete?.name);
-      
+
       if (articlesWithCategory.length > 0) {
         alert(`Cannot delete category. ${articlesWithCategory.length} article(s) are using this category. Please reassign or delete those articles first.`);
         setLoading(false);
@@ -425,9 +440,9 @@ const updateNewsTicker = async (newArticle) => {
       }
 
       await deleteDoc(doc(db, "categories", id));
-      
+
       setCategories(categories.filter(cat => cat.id !== id));
-      
+
       alert('Category deleted successfully!');
     } catch (error) {
       console.error('Error deleting category:', error);
@@ -441,22 +456,19 @@ const updateNewsTicker = async (newArticle) => {
   const handleImageFileChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         alert('Please select a valid image file');
         return;
       }
-      
-      // Validate file size (5MB)
+
       if (file.size > 5 * 1024 * 1024) {
         alert('Image size should be less than 5MB');
         return;
       }
-      
+
       setImageFile(file);
-      setArticleForm({ ...articleForm, preview_image_url: '' }); // Clear URL if file is selected
-      
-      // Create preview
+      setArticleForm({ ...articleForm, preview_image_url: '' });
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
@@ -471,7 +483,6 @@ const updateNewsTicker = async (newArticle) => {
       title: article.title,
       description: article.description,
       article_category: article.article_category,
-      article_link: article.article_link || '',
       preview_image_url: article.preview_image_url,
     });
     setImagePreview(article.preview_image_url);
@@ -483,7 +494,6 @@ const updateNewsTicker = async (newArticle) => {
       title: '',
       description: '',
       article_category: '',
-      article_link: '',
       preview_image_url: '',
     });
     setEditingArticle(null);
@@ -509,17 +519,22 @@ const updateNewsTicker = async (newArticle) => {
       setInitialLoading(true);
       try {
         await Promise.all([loadCategories(), loadArticles()]);
+
+        const homepageDoc = await getDoc(doc(db, "homepage", "homepage"));
+        if (homepageDoc.exists()) {
+          const data = homepageDoc.data();
+          setHomepageArticles(data.articles || []);
+        }
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
         setInitialLoading(false);
       }
     };
-    
+
     loadData();
   }, []);
 
-  // Calculate articles count for each category
   const getCategoryArticlesCount = (categoryName) => {
     return articles.filter(article => article.article_category === categoryName).length;
   };
@@ -537,7 +552,6 @@ const updateNewsTicker = async (newArticle) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Loading Overlay */}
       {loading && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="bg-white rounded-2xl p-8 flex flex-col items-center">
@@ -547,7 +561,6 @@ const updateNewsTicker = async (newArticle) => {
         </div>
       )}
 
-      {/* Header */}
       <div className={`bg-gradient-to-r ${theme.gradients.primary} py-8 shadow-xl`}>
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="flex items-center justify-between">
@@ -560,27 +573,24 @@ const updateNewsTicker = async (newArticle) => {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="bg-white border-b-2 border-gray-100 shadow-lg sticky top-0 z-40">
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="flex gap-4">
             <button
               onClick={() => setActiveTab('articles')}
-              className={`px-6 py-4 font-bold border-b-4 transition-all ${
-                activeTab === 'articles'
-                  ? 'border-orange-500 text-orange-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              }`}
+              className={`px-6 py-4 font-bold border-b-4 transition-all ${activeTab === 'articles'
+                ? 'border-orange-500 text-orange-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+                }`}
             >
               Articles ({articles.length})
             </button>
             <button
               onClick={() => setActiveTab('categories')}
-              className={`px-6 py-4 font-bold border-b-4 transition-all ${
-                activeTab === 'categories'
-                  ? 'border-orange-500 text-orange-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              }`}
+              className={`px-6 py-4 font-bold border-b-4 transition-all ${activeTab === 'categories'
+                ? 'border-orange-500 text-orange-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+                }`}
             >
               Categories ({categories.length})
             </button>
@@ -589,10 +599,8 @@ const updateNewsTicker = async (newArticle) => {
       </div>
 
       <div className="container mx-auto px-4 max-w-7xl py-8">
-        {/* Articles Tab */}
         {activeTab === 'articles' && (
           <div>
-            {/* Add Article Button */}
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-3xl font-black text-gray-900">All Articles</h2>
               <button
@@ -613,7 +621,6 @@ const updateNewsTicker = async (newArticle) => {
               </div>
             )}
 
-            {/* Add/Edit Article Form */}
             {(showAddArticle || editingArticle) && (
               <div className={`${theme.cards.elevated} rounded-2xl p-8 mb-8`}>
                 <div className="flex justify-between items-center mb-6">
@@ -629,7 +636,6 @@ const updateNewsTicker = async (newArticle) => {
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
-                  {/* Title */}
                   <div>
                     <label className="block text-sm font-bold text-gray-900 mb-2">
                       Article Title *
@@ -643,7 +649,6 @@ const updateNewsTicker = async (newArticle) => {
                     />
                   </div>
 
-                  {/* Category */}
                   <div>
                     <label className="block text-sm font-bold text-gray-900 mb-2">
                       Category *
@@ -660,24 +665,6 @@ const updateNewsTicker = async (newArticle) => {
                     </select>
                   </div>
 
-                  {/* Article Link */}
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-bold text-gray-900 mb-2">
-                      Article Link (Optional)
-                    </label>
-                    <div className="relative">
-                      <Link className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <input
-                        type="url"
-                        value={articleForm.article_link}
-                        onChange={(e) => setArticleForm({ ...articleForm, article_link: e.target.value })}
-                        placeholder="https://example.com/article"
-                        className="text-black w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Description */}
                   <div className="md:col-span-2">
                     <label className="block text-sm font-bold text-gray-900 mb-2">
                       Description *
@@ -691,14 +678,12 @@ const updateNewsTicker = async (newArticle) => {
                     />
                   </div>
 
-                  {/* Image Upload */}
                   <div className="md:col-span-2">
                     <label className="block text-sm font-bold text-gray-900 mb-2">
                       Preview Image *
                     </label>
-                    
+
                     <div className="flex flex-col md:flex-row gap-4 items-start">
-                      {/* File Upload */}
                       <div className="flex-1 w-full">
                         <label className="block w-full cursor-pointer">
                           <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-orange-500 transition-colors">
@@ -720,12 +705,10 @@ const updateNewsTicker = async (newArticle) => {
                         </label>
                       </div>
 
-                      {/* OR Divider */}
                       <div className="flex items-center justify-center">
                         <span className="text-gray-400 font-bold">OR</span>
                       </div>
 
-                      {/* URL Input */}
                       <div className="flex-1 w-full">
                         <input
                           type="url"
@@ -744,7 +727,6 @@ const updateNewsTicker = async (newArticle) => {
                   </div>
                 </div>
 
-                {/* Image Preview */}
                 {imagePreview && (
                   <div className="mt-6">
                     <label className="block text-sm font-bold text-gray-900 mb-2">Preview</label>
@@ -759,7 +741,6 @@ const updateNewsTicker = async (newArticle) => {
                   </div>
                 )}
 
-                {/* Action Buttons */}
                 <div className="flex gap-4 mt-6">
                   <button
                     onClick={editingArticle ? handleUpdateArticle : handleAddArticle}
@@ -783,7 +764,6 @@ const updateNewsTicker = async (newArticle) => {
               </div>
             )}
 
-            {/* Articles Grid */}
             {articles.length > 0 ? (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {articles.map((article) => (
@@ -808,16 +788,12 @@ const updateNewsTicker = async (newArticle) => {
                       <p className="text-gray-600 text-sm mb-4 line-clamp-3">
                         {article.description}
                       </p>
-                      {article.article_link && (
-                        <a 
-                          href={article.article_link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-orange-600 hover:text-orange-700 mb-4 block truncate"
-                        >
-                          🔗 Read Article
-                        </a>
-                      )}
+                      <button
+                        onClick={() => setViewingImage(article.preview_image_url)}
+                        className="text-xs text-blue-600 hover:text-blue-700 mb-4 block"
+                      >
+                        🖼️ View Image
+                      </button>
 
                       <div className="flex gap-2 mt-4">
                         <button
@@ -833,6 +809,25 @@ const updateNewsTicker = async (newArticle) => {
                         >
                           <Trash2 className="w-4 h-4" />
                           Delete
+                        </button>
+                        <button
+                          onClick={() => handleDisplayOnHomepage(article)}
+                          className={`flex-1 inline-flex items-center justify-center gap-2 ${homepageArticles.some(a => a.id === article.id)
+                            ? "bg-red-500 hover:bg-red-600"
+                            : "bg-green-500 hover:bg-green-600"
+                            } text-white rounded-xl py-2 px-4 font-bold transition-all`}
+                        >
+                          {homepageArticles.some(a => a.id === article.id) ? (
+                            <>
+                              <X className="w-4 h-4" />
+                              Remove
+                            </>
+                          ) : (
+                            <>
+                              <Star className="w-4 h-4" />
+                              Display
+                            </>
+                          )}
                         </button>
                       </div>
                     </div>
@@ -858,10 +853,8 @@ const updateNewsTicker = async (newArticle) => {
           </div>
         )}
 
-        {/* Categories Tab */}
         {activeTab === 'categories' && (
           <div>
-            {/* Add Category Button */}
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-3xl font-black text-gray-900">Manage Categories</h2>
               <button
@@ -873,7 +866,6 @@ const updateNewsTicker = async (newArticle) => {
               </button>
             </div>
 
-            {/* Add/Edit Category Form */}
             {(showAddCategory || editingCategory) && (
               <div className={`${theme.cards.elevated} rounded-2xl p-8 mb-8`}>
                 <div className="flex justify-between items-center mb-6">
@@ -924,7 +916,6 @@ const updateNewsTicker = async (newArticle) => {
               </div>
             )}
 
-            {/* Categories List */}
             {categories.length > 0 ? (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {categories.map((category) => (
@@ -981,6 +972,27 @@ const updateNewsTicker = async (newArticle) => {
           </div>
         )}
       </div>
+
+      {/* Image Viewing Modal - Placed at the end */}
+      {viewingImage && (
+        <div
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          onClick={() => setViewingImage(null)}
+        >
+          <button
+            onClick={() => setViewingImage(null)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors"
+          >
+            <X className="w-8 h-8" />
+          </button>
+          <img
+            src={viewingImage}
+            alt="Article"
+            className="max-w-full max-h-full object-contain rounded-xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 };
