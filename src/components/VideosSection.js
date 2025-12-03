@@ -59,43 +59,12 @@ const VIEW_ALL_VIDEOS_URL = '/AllVideos'; // Change this to your videos page URL
 // const VIEW_ALL_VIDEOS_URL = 'https://www.youtube.com/@yourchannel/videos';
 // const VIEW_ALL_VIDEOS_URL = '/library';
 
-const VideosSection = () => {
+const VideosSection = ({ homepageData }) => {
   const [videos, setVideos] = useState([]);
   const [playingVideo, setPlayingVideo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [channels, setChannels] = useState([]);
-
-  // Cache helpers
-  const CACHE_KEY = 'homepage_videos_cache';
-  const CACHE_TIMESTAMP_KEY = 'homepage_videos_cache_timestamp';
-  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-  const getCachedData = () => {
-    try {
-      const cached = localStorage.getItem(CACHE_KEY);
-      const timestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
-      
-      if (cached && timestamp) {
-        const age = Date.now() - parseInt(timestamp);
-        if (age < CACHE_DURATION) {
-          return JSON.parse(cached);
-        }
-      }
-    } catch (error) {
-      console.error('Cache read error:', error);
-    }
-    return null;
-  };
-
-  const setCachedData = (data) => {
-    try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-      localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
-    } catch (error) {
-      console.error('Cache write error:', error);
-    }
-  };
 
   // Extract video ID from YouTube URL
   const extractVideoId = (url) => {
@@ -122,41 +91,16 @@ const VideosSection = () => {
     return uniqueChannels;
   };
 
-  // Load videos from homepage collection
-  const loadVideos = async (useCache = true) => {
-    try {
+  // Initial load
+  useEffect(() => {
+    if (!homepageData) {
       setLoading(true);
-      setError(null);
+      return;
+    }
 
-      // Try cache first
-      if (useCache) {
-        const cached = getCachedData();
-        if (cached) {
-          console.log('📦 Loading homepage videos from cache');
-          setVideos(cached.videos);
-          setChannels(cached.channels);
-          setLoading(false);
-          return;
-        }
-      }
-
-      // Fetch from Firebase homepage collection
-      console.log('🔄 Fetching videos from homepage collection');
-      const homepageDocRef = doc(db, "homepage", "homepage");
-      const homepageDoc = await getDoc(homepageDocRef);
-
-      if (!homepageDoc.exists()) {
-        console.log('No homepage document found');
-        setVideos([]);
-        setChannels([]);
-        setLoading(false);
-        return;
-      }
-
-      const homepageData = homepageDoc.data();
+    try {
       const videosArray = homepageData.videos || [];
 
-      // Transform videos data
       const transformedVideos = videosArray.map((video, index) => {
         const videoId = extractVideoId(video.video_url);
         
@@ -173,31 +117,17 @@ const VideosSection = () => {
         };
       });
 
-      // Extract unique channels
       const extractedChannels = extractChannels(transformedVideos);
       
       setVideos(transformedVideos);
       setChannels(extractedChannels);
-      
-      // Cache the data
-      setCachedData({ 
-        videos: transformedVideos, 
-        channels: extractedChannels
-      });
-      
-      console.log('✅ Homepage videos loaded and cached successfully');
+      setLoading(false);
     } catch (error) {
-      console.error('Error loading homepage videos:', error);
-      setError('Failed to load videos. Please try again later.');
-    } finally {
+      console.error('Error processing videos:', error);
+      setError('Failed to load videos.');
       setLoading(false);
     }
-  };
-
-  // Initial load
-  useEffect(() => {
-    loadVideos();
-  }, []);
+  }, [homepageData]);
 
   // Determine if the URL is external
   const isExternalUrl = (url) => {
