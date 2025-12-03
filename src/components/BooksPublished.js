@@ -37,7 +37,7 @@ const getButton = (variant = 'primary') => {
     return variants[variant];
 };
 
-const BooksSection = () => {
+const BooksSection = ({ homepageData }) => {
     const [books, setBooks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -48,77 +48,6 @@ const BooksSection = () => {
         const words = text.split(' ');
         if (words.length <= wordLimit) return text;
         return words.slice(0, wordLimit).join(' ') + '...';
-    };
-
-    // Cache keys
-    const CACHE_KEY = 'homepage_books_cache';
-    const CACHE_TIMESTAMP_KEY = 'homepage_books_cache_timestamp';
-    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-    // Fetch and cache books from Firebase (UPDATED)
-    const fetchAndCacheBooks = async () => {
-        try {
-            // Get a reference to the single document in the 'homepage' collection
-            const homepageDocRef = doc(db, "homepage", "homepage");
-            const docSnap = await getDoc(homepageDocRef);
-            
-            let booksData = [];
-
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                // Check if the 'books' array exists in the document data
-                if (data.books && Array.isArray(data.books)) {
-                    // We only want the first 4 books as per the original logic/display
-                    booksData = data.books.slice(0, 4); 
-                }
-            } else {
-                console.log("No 'homepage' document found!");
-            }
-
-            // Update state
-            setBooks(booksData);
-            setLoading(false);
-
-            // Cache the data
-            localStorage.setItem(CACHE_KEY, JSON.stringify(booksData));
-            localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
-
-            console.log('Homepage books fetched and cached successfully');
-        } catch (err) {
-            console.error('Error fetching homepage books from Firebase:', err);
-            setError('Failed to load books from database.');
-            setLoading(false);
-        }
-    };
-    
-    // Fetch books from Firebase with caching (UPDATED)
-    const fetchBooksFromFirebase = async () => {
-        setLoading(true);
-        try {
-            // Check cache first
-            const cachedBooks = localStorage.getItem(CACHE_KEY);
-            const cacheTimestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
-
-            // Use cache if it's less than 5 minutes old
-            if (cachedBooks && cacheTimestamp) {
-                const cacheAge = Date.now() - parseInt(cacheTimestamp);
-                if (cacheAge < CACHE_DURATION) {
-                    console.log('Loading books from cache');
-                    setBooks(JSON.parse(cachedBooks));
-                    setLoading(false);
-                    // Still fetch in background to update cache for next time
-                    // setTimeout(fetchAndCacheBooks, 1); // Optional: Re-fetch in background
-                    return;
-                }
-            }
-
-            // No valid cache, fetch from Firebase
-            await fetchAndCacheBooks();
-        } catch (err) {
-            console.error('Error loading books:', err);
-            setError('Failed to load books. Please try again later.');
-            setLoading(false);
-        }
     };
 
     // Handle book purchase - redirect to purchase URL (UPDATED)
@@ -139,8 +68,21 @@ const BooksSection = () => {
     };
 
     useEffect(() => {
-        fetchBooksFromFirebase();
-    }, []);
+    if (!homepageData) {
+      setLoading(true);
+      return;
+    }
+
+    try {
+      const booksData = (homepageData.books || []).slice(0, 4);
+      setBooks(booksData);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error processing books data:', err);
+      setError('Failed to load books.');
+      setLoading(false);
+    }
+  }, [homepageData]);
 
     // Loading state
     if (loading) {
