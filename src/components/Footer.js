@@ -15,9 +15,7 @@ const Footer = () => {
   const quickLinks = [
     { name: 'Home', href: '/' },
     { name: 'About', href: '/#about' },
-    { name: 'Military', href: '/#military' },
-    { name: 'Mentor', href: '/#mentor' },
-    { name: 'Podcasts', href: '/#podcast' },
+    { name: 'Podcasts', href: '/#podcasts' },
   ];
 
   const resources = [
@@ -56,7 +54,7 @@ const Footer = () => {
             </div>
             
             <p className="text-gray-300 leading-relaxed mb-6">
-              Empowering aspirants to achieve their dreams of serving the nation. With over 15 years of excellence in defense exam preparation, we've helped thousands realize their ambitions.
+              Empowering Leaders to achieve their dreams of serving the nation. With over 25 years of excellence in defense exam preparation, we've helped hundreds realize their ambitions.
             </p>
 
             {/* Contact Info */}
@@ -67,7 +65,7 @@ const Footer = () => {
                 </div>
                 <div>
                   <div className="text-sm font-semibold text-gray-200">Location</div>
-                  <div className="text-sm text-gray-400">Aurangabad, Maharashtra, IN</div>
+                  <div className="text-sm text-gray-400">Chattarapati Sambhaji Nagar, Maharashtra, IN</div>
                 </div>
               </div>
 
