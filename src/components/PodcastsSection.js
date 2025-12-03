@@ -63,41 +63,23 @@ const getYouTubeEmbedURL = (videoId) => {
   return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
 };
 
-const PodcastsSection = () => {
+const PodcastsSection = ({ homepageData }) => {
   const [podcasts, setPodcasts] = useState([]);
   const [playingPodcast, setPlayingPodcast] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [cache, setCache] = useState(null);
 
-  // Load podcasts from Firebase 'homepage/homepage' document
-  const loadPodcasts = async (useCache = true) => {
-    try {
+
+  useEffect(() => {
+    if (!homepageData) {
       setLoading(true);
-      setError(null);
+      return;
+    }
 
-      // Check cache first
-      if (useCache && cache && Date.now() - cache.timestamp < CACHE_DURATION) {
-        setPodcasts(cache.podcasts);
-        setLoading(false);
-        return;
-      }
-
-      // Fetch from homepage/homepage document
-      const homepageDocRef = doc(db, "homepage", "homepage");
-      const homepageDoc = await getDoc(homepageDocRef);
-
-      if (!homepageDoc.exists()) {
-        console.log('No homepage document found');
-        setPodcasts([]);
-        setLoading(false);
-        return;
-      }
-
-      const homepageData = homepageDoc.data();
+    try {
       const rawPodcastsArray = homepageData.podcasts || [];
       
-      // Sort by 'added_at' in descending order (latest first)
       const sortedRawPodcasts = rawPodcastsArray.sort((a, b) => {
         const dateA = new Date(a.added_at || '1970-01-01');
         const dateB = new Date(b.added_at || '1970-01-01');
@@ -123,23 +105,13 @@ const PodcastsSection = () => {
       });
 
       setPodcasts(fetchedPodcasts);
-      
-      // Update cache
-      setCache({
-        podcasts: fetchedPodcasts,
-        timestamp: Date.now()
-      });
+      setLoading(false);
     } catch (error) {
-      console.error('Error loading podcasts:', error);
-      setError('Failed to load podcasts. Please try again later.');
-    } finally {
+      console.error('Error processing podcasts:', error);
+      setError('Failed to load podcasts.');
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    loadPodcasts();
-  }, []);
+  }, [homepageData]);
 
   const displayedPodcasts = podcasts.slice(0, PODCASTS_TO_DISPLAY);
 
@@ -178,21 +150,6 @@ const PodcastsSection = () => {
           <div className="text-center py-20">
             <Loader className="w-12 h-12 text-orange-500 animate-spin mx-auto mb-4" />
             <p className={`${theme.text.secondary} font-semibold`}>Loading podcasts...</p>
-          </div>
-        )}
-
-        {/* Error State */}
-        {error && (
-          <div className="text-center py-20">
-            <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-8 max-w-md mx-auto">
-              <p className="text-red-600 font-semibold mb-4">{error}</p>
-              <button 
-                onClick={() => loadPodcasts(false)}
-                className={`px-6 py-3 bg-gradient-to-r ${theme.gradients.primary} ${theme.text.white} rounded-xl font-bold transition-all hover:scale-105`}
-              >
-                Try Again
-              </button>
-            </div>
           </div>
         )}
 
