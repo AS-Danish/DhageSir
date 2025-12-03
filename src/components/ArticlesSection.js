@@ -38,42 +38,11 @@ const getButton = (variant = 'primary') => {
     return variants[variant];
 };
 
-const ArticlesSection = () => {
+const ArticlesSection = ({ homepageData }) => {
     const [articles, setArticles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [viewingImage, setViewingImage] = useState(null); // State for image modal
-
-    // Cache helpers
-    const CACHE_KEY = 'articles_section_cache_homepage'; // Updated cache key
-    const CACHE_TIMESTAMP_KEY = 'articles_section_cache_timestamp_homepage';
-    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-    const getCachedData = () => {
-        try {
-            const cached = localStorage.getItem(CACHE_KEY);
-            const timestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
-
-            if (cached && timestamp) {
-                const age = Date.now() - parseInt(timestamp);
-                if (age < CACHE_DURATION) {
-                    return JSON.parse(cached);
-                }
-            }
-        } catch (error) {
-            console.error('Cache read error:', error);
-        }
-        return null;
-    };
-
-    const setCachedData = (data) => {
-        try {
-            localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-            localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
-        } catch (error) {
-            console.error('Cache write error:', error);
-        }
-    };
 
     // Format date
     const formatDate = (dateString) => {
@@ -101,64 +70,37 @@ const ArticlesSection = () => {
         return `${Math.max(1, minutes)} min read`;
     };
 
-    // Load articles from Firebase - MODIFIED TO FETCH FROM HOMEPAGE
-    const loadArticles = async (useCache = true) => {
-        try {
-            setLoading(true);
-            setError(null);
-
-            // Try cache first
-            if (useCache) {
-                const cached = getCachedData();
-                if (cached) {
-                    setArticles(cached);
-                    setLoading(false);
-                    return;
-                }
-            }
-
-            // Fetch homepage document
-            const homepageDocRef = doc(db, "homepage", "homepage");
-            const homepageSnapshot = await getDoc(homepageDocRef);
-            
-            let fetchedArticles = [];
-            if (homepageSnapshot.exists()) {
-                const homepageData = homepageSnapshot.data();
-                // Get the articles array and map them to the format needed for the component
-                const homepageArticlesArray = homepageData.articles || [];
-                
-                // Sort by 'added_at' descending and limit to 8 (if needed, although admin controls max)
-                // Assuming 'added_at' is used for order
-                homepageArticlesArray.sort((a, b) => new Date(b.added_at) - new Date(a.added_at));
-
-                fetchedArticles = homepageArticlesArray.slice(0, 8).map(article => ({
-                    id: article.id,
-                    title: article.title,
-                    description: article.description,
-                    // Use preview_image_url for the image
-                    image: article.preview_image_url || 'https://via.placeholder.com/600x400?text=No+Image',
-                    category: article.article_category || 'General',
-                    // articleLink is now the image URL for the modal
-                    articleLink: article.preview_image_url, 
-                    date: formatDate(article.added_at), // Use added_at for date
-                    readTime: calculateReadTime(article.description)
-                }));
-            }
-            
-            setArticles(fetchedArticles);
-            setCachedData(fetchedArticles);
-        } catch (error) {
-            console.error('Error loading homepage articles:', error);
-            setError('Failed to load articles from homepage configuration. Please try again later.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     // Initial load
     useEffect(() => {
-        loadArticles();
-    }, []);
+    if (!homepageData) {
+      setLoading(true);
+      return;
+    }
+
+    try {
+      const homepageArticlesArray = homepageData.articles || [];
+      
+      homepageArticlesArray.sort((a, b) => new Date(b.added_at) - new Date(a.added_at));
+
+      const fetchedArticles = homepageArticlesArray.slice(0, 8).map(article => ({
+        id: article.id,
+        title: article.title,
+        description: article.description,
+        image: article.preview_image_url || 'https://via.placeholder.com/600x400?text=No+Image',
+        category: article.article_category || 'General',
+        articleLink: article.preview_image_url,
+        date: formatDate(article.added_at),
+        readTime: calculateReadTime(article.description)
+      }));
+      
+      setArticles(fetchedArticles);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error processing articles:', error);
+      setError('Failed to load articles.');
+      setLoading(false);
+    }
+  }, [homepageData]);
 
     // Handle article click - MODIFIED TO SHOW IMAGE PREVIEW
     const handleArticleClick = (imageUrl) => {
@@ -208,21 +150,6 @@ const ArticlesSection = () => {
                     <div className="text-center py-20">
                         <Loader className="w-12 h-12 text-orange-500 animate-spin mx-auto mb-4" />
                         <p className={`${theme.text.secondary} font-semibold`}>Loading articles...</p>
-                    </div>
-                )}
-
-                {/* Error State */}
-                {error && (
-                    <div className="text-center py-20">
-                        <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-8 max-w-md mx-auto">
-                            <p className="text-red-600 font-semibold mb-4">{error}</p>
-                            <button
-                                onClick={() => loadArticles(false)}
-                                className={getButton('primary')}
-                            >
-                                Try Again
-                            </button>
-                        </div>
                     </div>
                 )}
 
