@@ -144,7 +144,7 @@ const PodcastsSection = () => {
   const displayedPodcasts = podcasts.slice(0, PODCASTS_TO_DISPLAY);
 
   return (
-    <section className={`py-16 md:py-20 ${theme.backgrounds.white} relative overflow-hidden`}>
+    <section className={`py-16 md:py-20 ${theme.backgrounds.white} relative overflow-hidden`} id='podcasts'>
       {/* Background Elements */}
       <div className={`absolute top-0 right-0 w-96 h-96 ${theme.backgrounds.primary} rounded-full filter blur-3xl opacity-40`}></div>
       <div className={`absolute bottom-0 left-0 w-96 h-96 ${theme.backgrounds.primary} rounded-full filter blur-3xl opacity-40`}></div>
