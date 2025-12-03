@@ -95,19 +95,19 @@ const ContactSection = () => {
   const socialLinks = [
     {
       name: t.facebook,
-      url: "https://facebook.com/yourpage",
+      url: "https://www.facebook.com/satish.dhage.7/",
       bgColor: "bg-gradient-to-br from-blue-600 to-blue-700",
       hoverColor: "hover:from-blue-700 hover:to-blue-800",
     },
     {
       name: t.instagram,
-      url: "https://instagram.com/yourprofile",
+      url: "https://www.instagram.com/drsatishdhage/?hl=en",
       bgColor: "bg-gradient-to-br from-pink-500 via-purple-500 to-orange-500",
       hoverColor: "hover:from-pink-600 hover:via-purple-600 hover:to-orange-600",
     },
     {
       name: t.twitter,
-      url: "https://twitter.com/yourhandle",
+      url: "https://x.com/drsatishdhage",
       bgColor: "bg-gradient-to-br from-gray-800 to-gray-900",
       hoverColor: "hover:from-gray-900 hover:to-black",
     },
@@ -131,7 +131,7 @@ const ContactSection = () => {
     },
     {
       name: t.linkedin,
-      url: "https://linkedin.com/in/yourprofile",
+      url: "https://www.linkedin.com/in/lt-col-dr-satish-dhage-2a9594110/",
       bgColor: "bg-gradient-to-br from-blue-700 to-blue-800",
       hoverColor: "hover:from-blue-800 hover:to-blue-900",
     }
