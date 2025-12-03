@@ -62,9 +62,9 @@ const AdminStudyMaterialsPage = () => {
       id: doc.id,
       ...doc.data()
     }));
-    
+
     setMaterials(materialsData);
-    
+
     // Cache the data
     localStorage.setItem('study_materials_cache', JSON.stringify(materialsData));
     localStorage.setItem('study_materials_cache_timestamp', Date.now().toString());
@@ -76,7 +76,7 @@ const AdminStudyMaterialsPage = () => {
       // Try to load from cache first
       const cachedMaterials = localStorage.getItem('study_materials_cache');
       const cacheTimestamp = localStorage.getItem('study_materials_cache_timestamp');
-      
+
       // Use cache if it's less than 5 minutes old
       if (cachedMaterials && cacheTimestamp) {
         const cacheAge = Date.now() - parseInt(cacheTimestamp);
@@ -87,7 +87,7 @@ const AdminStudyMaterialsPage = () => {
           return;
         }
       }
-      
+
       // Fetch fresh data
       await fetchAndCacheMaterials();
     } catch (error) {
@@ -100,19 +100,19 @@ const AdminStudyMaterialsPage = () => {
   const uploadFileToStorage = async (file) => {
     try {
       setUploadingFile(true);
-      
+
       // Create a unique filename with sanitized name
       const timestamp = Date.now();
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
       const fileName = `${timestamp}_${sanitizedFileName}`;
       const storageRef = ref(storage, `study-materials/${fileName}`);
-      
+
       // Upload file
       const snapshot = await uploadBytes(storageRef, file);
-      
+
       // Get download URL
       const downloadURL = await getDownloadURL(snapshot.ref);
-      
+
       return {
         url: downloadURL,
         name: file.name,
@@ -147,7 +147,7 @@ const AdminStudyMaterialsPage = () => {
 
     try {
       setLoading(true);
-      
+
       // Upload file
       const fileData = await uploadFileToStorage(selectedFile);
 
@@ -163,7 +163,7 @@ const AdminStudyMaterialsPage = () => {
 
       const docRef = await addDoc(collection(db, "study_materials"), materialData);
       const newMaterial = { id: docRef.id, ...materialData };
-      
+
       setMaterials([newMaterial, ...materials]);
       invalidateCache();
 
@@ -187,7 +187,7 @@ const AdminStudyMaterialsPage = () => {
 
     try {
       setLoading(true);
-      
+
       let fileData = {
         url: materialForm.file_url,
         name: materialForm.file_name,
@@ -195,7 +195,7 @@ const AdminStudyMaterialsPage = () => {
         size: materialForm.file_size,
         storagePath: editingMaterial.storage_path
       };
-      
+
       // Upload new file if selected
       if (selectedFile) {
         // Delete old file from storage
@@ -207,7 +207,7 @@ const AdminStudyMaterialsPage = () => {
             console.warn('Could not delete old file:', error);
           }
         }
-        
+
         fileData = await uploadFileToStorage(selectedFile);
       }
 
@@ -222,8 +222,8 @@ const AdminStudyMaterialsPage = () => {
       };
 
       await updateDoc(doc(db, "study_materials", editingMaterial.id), materialData);
-      
-      setMaterials(materials.map(material => 
+
+      setMaterials(materials.map(material =>
         material.id === editingMaterial.id ? { ...material, ...materialData } : material
       ));
       invalidateCache();
@@ -247,7 +247,7 @@ const AdminStudyMaterialsPage = () => {
 
     try {
       setLoading(true);
-      
+
       // Delete file from storage
       if (material.storage_path) {
         try {
@@ -257,12 +257,12 @@ const AdminStudyMaterialsPage = () => {
           console.warn('Could not delete file from storage:', error);
         }
       }
-      
+
       await deleteDoc(doc(db, "study_materials", material.id));
-      
+
       setMaterials(materials.filter(m => m.id !== material.id));
       invalidateCache();
-      
+
       alert('Study material deleted successfully!');
     } catch (error) {
       console.error('Error deleting study material:', error);
@@ -276,24 +276,26 @@ const AdminStudyMaterialsPage = () => {
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
+      // Validate file type - ADD WORD FORMATS
       const allowedTypes = [
         'application/pdf',
         'application/vnd.ms-powerpoint',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'application/msword', // .doc
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' // .docx
       ];
-      
+
       if (!allowedTypes.includes(file.type)) {
-        alert('Please select a valid PDF or PowerPoint file');
+        alert('Please select a valid PDF, PowerPoint, or Word file');
         return;
       }
-      
-      // Validate file size (50MB)
+
+      // Rest of the validation code remains the same
       if (file.size > 50 * 1024 * 1024) {
         alert('File size should be less than 50MB');
         return;
       }
-      
+
       setSelectedFile(file);
     }
   };
@@ -335,7 +337,7 @@ const AdminStudyMaterialsPage = () => {
         setInitialLoading(false);
       }
     };
-    
+
     loadData();
   }, []);
 
@@ -364,6 +366,8 @@ const AdminStudyMaterialsPage = () => {
       return '📄';
     } else if (fileType?.includes('presentation') || fileType?.includes('powerpoint')) {
       return '📊';
+    } else if (fileType?.includes('word') || fileType?.includes('document')) {
+      return '📝'; // Word icon
     }
     return '📎';
   };
@@ -397,7 +401,7 @@ const AdminStudyMaterialsPage = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-black text-white mb-2">Study Materials Management</h1>
-              <p className="text-orange-100">Upload and manage PDF and PowerPoint study materials</p>
+              <p className="text-orange-100">Upload and manage PDF, PowerPoint and Word study materials</p>
             </div>
             <FileText className="w-16 h-16 text-white opacity-50" />
           </div>
@@ -452,7 +456,7 @@ const AdminStudyMaterialsPage = () => {
                 <label className="block text-sm font-bold text-gray-900 mb-2">
                   {editingMaterial ? 'Replace File (Optional)' : 'Upload File *'}
                 </label>
-                
+
                 <label className="block w-full cursor-pointer">
                   <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 hover:border-orange-500 transition-colors">
                     <div className="flex flex-col items-center">
@@ -460,7 +464,7 @@ const AdminStudyMaterialsPage = () => {
                       <p className="text-lg font-bold text-gray-900 mb-1">
                         {uploadingFile ? 'Uploading...' : selectedFile ? selectedFile.name : (editingMaterial ? 'Click to replace file' : 'Click to upload file')}
                       </p>
-                      <p className="text-sm text-gray-500 mb-2">PDF or PowerPoint (PPT/PPTX) up to 50MB</p>
+                      <p className="text-sm text-gray-500 mb-2">PDF, PowerPoint, or Word documents up to 50MB</p>
                       {selectedFile && (
                         <p className="text-xs text-orange-600 font-semibold">
                           {formatFileSize(selectedFile.size)}
@@ -470,7 +474,7 @@ const AdminStudyMaterialsPage = () => {
                   </div>
                   <input
                     type="file"
-                    accept=".pdf,.ppt,.pptx,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                    accept=".pdf,.ppt,.pptx,.doc,.docx,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     onChange={handleFileChange}
                     className="hidden"
                     disabled={uploadingFile}
@@ -592,11 +596,10 @@ const AdminStudyMaterialsPage = () => {
                     <button
                       key={page}
                       onClick={() => goToPage(page)}
-                      className={`w-10 h-10 rounded-lg font-bold transition-all ${
-                        currentPage === page
-                          ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
-                          : 'bg-white text-gray-900 hover:shadow-lg'
-                      }`}
+                      className={`w-10 h-10 rounded-lg font-bold transition-all ${currentPage === page
+                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
+                        : 'bg-white text-gray-900 hover:shadow-lg'
+                        }`}
                     >
                       {page}
                     </button>
