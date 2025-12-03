@@ -3,14 +3,12 @@ import {
   Mail, 
   Phone, 
   MapPin, 
-  Facebook, 
-  Twitter, 
+  Facebook,
   Instagram, 
   Linkedin, 
   Youtube,
   ArrowRight,
-  Clock,
-  Heart
+  X
 } from 'lucide-react';
 
 const Footer = () => {
@@ -28,12 +26,14 @@ const Footer = () => {
     { name: 'Study Materials', href: '/AllStudyMaterials' },
   ];
 
+  // 1. UPDATED: Changed 'color' to 'bgColor' and removed 'hover:' prefix for the Tailwind classes.
   const socialLinks = [
-    { icon: Facebook, href: '#', label: 'Facebook', color: 'hover:bg-blue-600' },
-    { icon: Twitter, href: '#', label: 'Twitter', color: 'hover:bg-sky-500' },
-    { icon: Instagram, href: '#', label: 'Instagram', color: 'hover:bg-pink-600' },
-    { icon: Linkedin, href: '#', label: 'LinkedIn', color: 'hover:bg-blue-700' },
-    { icon: Youtube, href: '#', label: 'YouTube', color: 'hover:bg-red-600' },
+    { icon: Facebook, href: 'https://www.facebook.com/satish.dhage.7/', label: 'Facebook', bgColor: 'bg-blue-600' },
+    { icon: X, href: 'https://x.com/drsatishdhage', label: 'Twitter', bgColor: 'bg-sky-500' },
+    { icon: Instagram, href: 'https://www.instagram.com/drsatishdhage/?hl=en', label: 'Instagram', bgColor: 'bg-pink-600' },
+    { icon: Linkedin, href: 'https://www.linkedin.com/in/lt-col-dr-satish-dhage-2a9594110/', label: 'LinkedIn', bgColor: 'bg-blue-700' },
+    { icon: Youtube, href: 'https://www.youtube.com/@drsatishdhage', label: 'YouTube', bgColor: 'bg-red-600' },,
+    { icon: Youtube, href: 'https://www.youtube.com/@TheMentorsForum', label: 'YouTube', bgColor: 'bg-red-600' },
   ];
 
   return (
@@ -156,9 +156,12 @@ const Footer = () => {
                   key={index}
                   href={social.href}
                   aria-label={social.label}
-                  className={`w-12 h-12 bg-gray-800/50 rounded-xl flex items-center justify-center ${social.color} transition-all hover:scale-110 shadow-lg group border border-gray-700/50`}
+                  target='_blank'
+                  // 2. UPDATED: Removed bg-gray-800/50 and social.color. Now using social.bgColor directly.
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center ${social.bgColor} transition-all hover:scale-110 shadow-lg group border border-gray-700/50`}
                 >
-                  <social.icon className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
+                  <social.icon className="w-5 h-5 text-white transition-colors" />
+                  {/* 3. OPTIMIZED: Changed text-gray-400 to text-white for better contrast on the colored background */}
                 </a>
               ))}
             </div>
