@@ -6,79 +6,7 @@ const NewsTicker = () => {
   const [newsItems, setNewsItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchTickerData();
-  }, []);
-
-  const fetchTickerData = async () => {
-    try {
-      // Try to load from cache first
-      const cachedData = getCachedData('news_ticker_data', 5 * 60 * 1000); // 5 min cache
-      
-      if (cachedData) {
-        setNewsItems(cachedData);
-        setLoading(false);
-        // Still fetch in background to update
-        fetchAndCacheTickerData();
-        return;
-      }
-
-      // Fetch fresh data
-      await fetchAndCacheTickerData();
-    } catch (error) {
-      console.error('Error fetching ticker data:', error);
-      setNewsItems([]);
-      setLoading(false);
-    }
-  };
-
-  const fetchAndCacheTickerData = async () => {
-    try {
-      const tickerDocRef = doc(db, "news_ticker", "latest");
-      const tickerSnapshot = await getDoc(tickerDocRef);
-
-      if (!tickerSnapshot.exists()) {
-        setNewsItems([]);
-        setLoading(false);
-        return;
-      }
-
-      const data = tickerSnapshot.data();
-      const items = [];
-
-      // Helper to add items if both title and URL exist
-      const addItem = (title, url, icon) => {
-        if (title && title.trim() !== '' && url && url.trim() !== '') {
-          items.push({
-            text: `${icon} ${title}`,
-            link: url
-          });
-        }
-      };
-
-      // Add articles (latest first, then second)
-      addItem(data.latest_article_title, data.latest_article_url, '📰');
-      addItem(data.second_article_title, data.second_article_url, '📰');
-
-      // Add books
-      addItem(data.latest_book_title, data.latest_book_url, '📚');
-      addItem(data.second_book_title, data.second_book_url, '📚');
-
-      // Add videos
-      addItem(data.latest_video_title, data.latest_video_url, '🎥');
-      addItem(data.second_video_title, data.second_video_url, '🎥');
-
-      setNewsItems(items);
-      setCachedData('news_ticker_data', items);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching ticker data:', error);
-      setNewsItems([]);
-      setLoading(false);
-    }
-  };
-
-  // Cache helpers
+  // --- Cache helpers (Unchanged) ---
   const getCachedData = (key, maxAge) => {
     try {
       const cached = localStorage.getItem(key);
@@ -104,6 +32,91 @@ const NewsTicker = () => {
       console.error('Cache write error:', error);
     }
   };
+  // --- End Cache helpers ---
+
+  const fetchAndCacheTickerData = async () => {
+    try {
+      // Fetch from 'homepage/homepage' doc
+      const tickerDocRef = doc(db, "homepage", "homepage");
+      const tickerSnapshot = await getDoc(tickerDocRef);
+
+      if (!tickerSnapshot.exists()) {
+        setNewsItems([]);
+        setLoading(false);
+        return;
+      }
+
+      const data = tickerSnapshot.data();
+      let items = [];
+
+      // --- MODIFICATION: Access news_ticker array directly ---
+      // This assumes 'news_ticker' is an array of objects with title/video_url fields
+      const newsTickerItems = data.news_ticker || [];
+
+      // 1. Add Video/News Items (These come first)
+      newsTickerItems.forEach(item => {
+        // Check if it's a valid item with title and URL
+        if (item.title && item.title.trim() !== '' && item.video_url && item.video_url.trim() !== '') {
+          items.push({
+            // Use '🎥' icon for video-like content
+            text: `🎥 ${item.title}`,
+            link: item.video_url
+          });
+        }
+      });
+
+      // 2. Add Static Text Items (These come after and are added separately)
+      const staticTexts = [
+        'Military Leader',
+        'Mentor',
+        'Medical Expert',
+        "Media",
+        "Disaster Management Expert",
+        "Defence Expert",
+        "Motivational Speaker",
+        "International Affairs Expert"
+      ];
+
+      staticTexts.forEach(text => {
+        items.push({
+          // Using a star icon and setting link to '#'
+          text: `⭐ ${text}`, 
+          link: '#' 
+        });
+      });
+      
+      setNewsItems(items);
+      setCachedData('news_ticker_data', items);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching ticker data:', error);
+      setNewsItems([]);
+      setLoading(false);
+    }
+  };
+
+  const fetchTickerData = async () => {
+    try {
+      const cachedData = getCachedData('news_ticker_data', 5 * 60 * 1000); 
+      
+      if (cachedData) {
+        setNewsItems(cachedData);
+        setLoading(false);
+        fetchAndCacheTickerData();
+        return;
+      }
+
+      await fetchAndCacheTickerData();
+    } catch (error) {
+      console.error('Error fetching ticker data:', error);
+      setNewsItems([]);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTickerData();
+  }, []);
 
   if (loading) {
     return (
@@ -132,6 +145,7 @@ const NewsTicker = () => {
         {/* Scrolling News Container */}
         <div className="flex-1 overflow-hidden ml-2 md:ml-4 relative">
           <div className="ticker-wrapper">
+            {/* Duplicating the array multiple times to ensure seamless scrolling */}
             {newsItems.concat(newsItems).concat(newsItems).concat(newsItems).concat(newsItems).map((news, index) => (
               <a 
                 key={index}
@@ -152,7 +166,7 @@ const NewsTicker = () => {
           display: inline-flex;
           white-space: nowrap;
           will-change: transform;
-          animation: scroll-ticker 60s linear infinite;
+          animation: scroll-ticker 100s linear infinite;
         }
 
         .ticker-item {
