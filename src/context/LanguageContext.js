@@ -146,8 +146,8 @@ export const translations = {
     
     // Social Links
     whatsapp: "WhatsApp",
-    youtube1: "Satish Dhage",
-    youtube2: "The Mentors Forum",
+    youtube1: "The Mentors Forum",
+    youtube2: "Dr Satish Dhage",
     instagram: "Instagram",
     facebook: "Facebook",
     twitter: "X (Twitter)",
