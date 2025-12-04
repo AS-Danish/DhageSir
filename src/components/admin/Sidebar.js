@@ -137,7 +137,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, collapsed, setCol
 
     setUploading(true);
     try {
-      const storageRef = ref(storage, `resume/resume.${file.name.split('.').pop()}`);
+      const storageRef = ref(storage, `resume/Lt Col (Dr) Satish Dhage Resume.${file.name.split('.').pop()}`);
       await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(storageRef);
 
