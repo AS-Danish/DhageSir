@@ -53,7 +53,7 @@ const getButton = (variant = 'primary') => {
 };
 
 // 🎯 CONFIGURE YOUR "VIEW ALL VIDEOS" URL HERE
-const VIEW_ALL_VIDEOS_URL = '/AllVideos'; 
+const VIEW_ALL_VIDEOS_URL = '/AllVideos';
 
 const VideosSection = ({ homepageData }) => {
   const [videos, setVideos] = useState([]);
@@ -99,10 +99,11 @@ const VideosSection = ({ homepageData }) => {
 
       const transformedVideos = videosArray.map((video, index) => {
         const videoId = extractVideoId(video.video_url);
-        
+
         return {
           id: video.video_id || `video-${index}`,
           title: video.title || 'Untitled Video',
+          description: video.description || '', // ✅ ADD DESCRIPTION
           thumbnail: video.thumbnail_url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
           videoUrl: video.video_url,
           embedUrl: getEmbedUrl(video.video_url),
@@ -113,7 +114,7 @@ const VideosSection = ({ homepageData }) => {
       });
 
       const extractedChannels = extractChannels(transformedVideos);
-      
+
       setVideos(transformedVideos);
       setChannels(extractedChannels);
       setLoading(false);
@@ -135,7 +136,7 @@ const VideosSection = ({ homepageData }) => {
       {/* Background Elements */}
       <div className={`absolute top-0 right-0 w-96 h-96 ${theme.backgrounds.primary} rounded-full filter blur-3xl opacity-40`}></div>
       <div className={`absolute bottom-0 left-0 w-96 h-96 ${theme.backgrounds.primary} rounded-full filter blur-3xl opacity-40`}></div>
-      
+
       <div className="container mx-auto px-4 max-w-7xl relative z-10">
         {/* Section Header with View All Button */}
         <div className="flex flex-col md:flex-row items-center justify-between mb-10 gap-6">
@@ -157,7 +158,7 @@ const VideosSection = ({ homepageData }) => {
           {!loading && !error && videos.length > 0 && (
             <div className="flex-shrink-0">
               {isExternalUrl(VIEW_ALL_VIDEOS_URL) ? (
-                <a 
+                <a
                   href={VIEW_ALL_VIDEOS_URL}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -194,7 +195,7 @@ const VideosSection = ({ homepageData }) => {
           <div className="text-center py-20">
             <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-8 max-w-md mx-auto">
               <p className="text-red-600 font-semibold mb-4">{error}</p>
-              <button 
+              <button
                 onClick={() => loadVideos(false)}
                 className={getButton('primary')}
               >
@@ -227,7 +228,7 @@ const VideosSection = ({ homepageData }) => {
                             ></iframe>
                           ) : (
                             <>
-                              <img 
+                              <img
                                 src={video.thumbnail}
                                 alt={video.title}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -237,9 +238,9 @@ const VideosSection = ({ homepageData }) => {
                               />
                               {/* Overlay */}
                               <div className={`absolute inset-0 bg-gradient-to-t ${theme.gradients.overlay}`}></div>
-                              
+
                               {/* Play Button */}
-                              <button 
+                              <button
                                 onClick={() => setPlayingVideo(video.id)}
                                 className="absolute inset-0 flex items-center justify-center group-hover:scale-110 transition-transform"
                                 aria-label={`Play ${video.title}`}
@@ -258,6 +259,7 @@ const VideosSection = ({ homepageData }) => {
                         </div>
 
                         {/* Video Info */}
+                        {/* Video Info */}
                         <div className="p-5">
                           {/* Channel Name */}
                           {video.channel_name && (
@@ -267,10 +269,17 @@ const VideosSection = ({ homepageData }) => {
                               </span>
                             </div>
                           )}
-                          
-                          <h3 className={`text-lg font-bold ${theme.text.primary} mb-3 line-clamp-2 group-hover:${theme.text.brand} transition-colors`}>
+
+                          <h3 className={`text-lg font-bold ${theme.text.primary} mb-2 line-clamp-2 group-hover:${theme.text.brand} transition-colors`}>
                             {video.title}
                           </h3>
+
+                          {/* ✅ ADD DESCRIPTION */}
+                          {video.description && (
+                            <p className={`${theme.text.secondary} text-sm line-clamp-3 leading-relaxed`}>
+                              {video.description}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -288,10 +297,10 @@ const VideosSection = ({ homepageData }) => {
                           Subscribe to Our Channels
                         </h3>
                         <p className={`${theme.text.secondary} mb-5`}>Get notified about new educational content and live sessions</p>
-                        
+
                         <div className="flex flex-col sm:flex-row gap-4">
                           {channels.map((channel, idx) => (
-                            <a 
+                            <a
                               key={channel.channel_id}
                               href={`https://www.youtube.com/channel/${channel.channel_id}`}
                               target="_blank"
