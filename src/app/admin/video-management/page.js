@@ -14,8 +14,26 @@ const HARDCODED_CATEGORIES = [
     channel_id: "UCgXrITZ6XnP_thbBey-enOA",
   },
   {
+    category_name: "Military and Defence", // The user's requested category name
+    category_id: "PLuhKcyouEj89kDJLw1VG0GBezUHDqfNId", // <<<--- YOUR YOUTUBE PLAYLIST ID HERE
+    channel_name: "Dr Satish Dhage",
+    channel_id: "UCgXrITZ6XnP_thbBey-enOA",
+  },
+  {
+    category_name: "Competetive Exam and Current Affairs", // The user's requested category name
+    category_id: "PLuhKcyouEj8-3G1vad65NcGYCZtroUv3A", // <<<--- YOUR YOUTUBE PLAYLIST ID HERE
+    channel_name: "Dr Satish Dhage",
+    channel_id: "UCgXrITZ6XnP_thbBey-enOA",
+  },
+  {
     category_name: "Disaster", // A second category name
     category_id: "PLqB5N9NDPhbJfrao7Z7f90OU5S7nyBu39", // <<<--- YOUR YOUTUBE PLAYLIST ID HERE
+    channel_name: "The Mentors Forum",
+    channel_id: "UC6hqtj38jmIqhx1e3POVu8w",
+  },
+  {
+    category_name: "Military and Defence", // A second category name
+    category_id: "PLqB5N9NDPhbJDNP7qA0mDgfzVHQWeywSF", // <<<--- YOUR YOUTUBE PLAYLIST ID HERE
     channel_name: "The Mentors Forum",
     channel_id: "UC6hqtj38jmIqhx1e3POVu8w",
   }
@@ -25,9 +43,9 @@ const HARDCODED_CATEGORIES = [
 const STATIC_CATEGORIES = [
   "International Affairs",
   "Disaster",
-  "Military",
+  "Military and Defence",
   "Mentorship",
-  "Defence",
+  "Competetive Exam and Current Affairs",
   // Add more categories as needed
 ];
 
@@ -359,7 +377,7 @@ const AdminVideosPage = () => {
       const q = query(
         collection(db, "videos"),
         where("category_id", "==", categoryId), // Filter by category_id (Playlist ID)
-        orderBy("created_at_iso", "asc"),
+        orderBy("published_at_iso", "asc"),
         limit(VIDEOS_PER_PAGE)
       );
 
@@ -403,7 +421,7 @@ const loadAllVideos = async (page = 1, categoryFilter = 'all', useCache = true) 
       // Get all videos
       q = query(
         collection(db, "videos"),
-        orderBy("created_at_iso", "desc"),
+        orderBy("published_at_iso", "desc"),
         limit(VIDEOS_PER_PAGE)
       );
     } else {
@@ -411,7 +429,7 @@ const loadAllVideos = async (page = 1, categoryFilter = 'all', useCache = true) 
       q = query(
         collection(db, "videos"),
         where("category_id", "==", categoryFilter),
-        orderBy("created_at_iso", "desc"),
+        orderBy("published_at_iso", "desc"),
         limit(VIDEOS_PER_PAGE)
       );
     }
@@ -484,7 +502,7 @@ const handleLoadMoreAllVideos = async () => {
     if (selectedCategory === 'all') {
       q = query(
         collection(db, "videos"),
-        orderBy("created_at_iso", "desc"),
+        orderBy("published_at_iso", "desc"),
         startAfter(lastDocSnap),
         limit(VIDEOS_PER_PAGE)
       );
@@ -492,7 +510,7 @@ const handleLoadMoreAllVideos = async () => {
       q = query(
         collection(db, "videos"),
         where("category_id", "==", selectedCategory),
-        orderBy("created_at_iso", "desc"),
+        orderBy("published_at_iso", "desc"),
         startAfter(lastDocSnap),
         limit(VIDEOS_PER_PAGE)
       );
@@ -531,7 +549,7 @@ const handleLoadMoreAllVideos = async () => {
       const baseQuery = query(
         collection(db, "videos"),
         where("category_id", "==", categoryId), // Filter by category_id (Playlist ID)
-        orderBy("created_at_iso", "asc"),
+        orderBy("published_at_iso", "asc"),
       );
 
       // Get the last document snapshot
