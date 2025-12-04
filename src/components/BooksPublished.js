@@ -217,7 +217,7 @@ const BooksSection = ({ homepageData }) => {
                                     {/* Purchase Book Button (UPDATED) */}
                                     <button
                                         onClick={() => handlePurchaseClick(book)}
-                                        className={`inline-flex items-center gap-2 ${theme.text.brand} font-bold text-sm group-hover:gap-3 transition-all`}
+                                        className={`cursor-pointer inline-flex items-center gap-2 ${theme.text.brand} font-bold text-sm group-hover:gap-3 transition-all`}
                                     >
                                         Purchase Book
                                         <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
