@@ -1,11 +1,46 @@
 import React from 'react';
-import { CheckCircle, Download, Star } from 'lucide-react';
+import { CheckCircle, Download, Star, Loader2 } from 'lucide-react'; // Added Loader2
 import { theme, getButton } from '../app/theme/theme';
 import { useLanguage } from '../context/LanguageContext';
+import { doc, getDoc } from 'firebase/firestore'; // Import Firestore functions
+import { db } from '@/firebase/firebaseConfig'; // Import your Firebase db instance
 
 const AboutSection = () => {
   const { t } = useLanguage();
   const [showVideo, setShowVideo] = React.useState(false);
+  // State to handle the downloading indicator
+  const [isDownloading, setIsDownloading] = React.useState(false);
+
+  // Function to handle the CV download, including fetching the URL
+  const handleDownloadCV = async () => {
+    setIsDownloading(true);
+    try {
+      // 1. Fetch the document from Firestore ('resume' collection, 'resume' document)
+      const resumeDocRef = doc(db, 'resume', 'resume');
+      const resumeDoc = await getDoc(resumeDocRef);
+
+      if (resumeDoc.exists()) {
+        const resumeData = resumeDoc.data();
+        const resumeUrl = resumeData.url;
+
+        if (resumeUrl) {
+          // 2. Initiate download using the fetched URL
+          // Opens the file URL in a new tab, which triggers the browser's download/viewing process
+          window.open(resumeUrl, '_blank'); 
+        } else {
+          alert(t.downloadError || "Resume URL not found. Please upload a file via the admin panel.");
+        }
+      } else {
+        alert(t.downloadError || "No resume document found in the database.");
+      }
+    } catch (error) {
+      console.error('Error fetching or downloading resume:', error);
+      alert(t.downloadError || "Failed to download resume. Check console for details.");
+    } finally {
+      // 3. Hide the loading indicator
+      setIsDownloading(false);
+    }
+  };
 
   const achievements = [
     { icon: Star, text: t.achievement1 },
@@ -119,10 +154,17 @@ const AboutSection = () => {
 
             {/* CTA Buttons */}
             <div className="flex flex-wrap gap-4 pt-4 cursor-pointer">
-              <button className={`${getButton('primary')} inline-flex items-center gap-3 group cursor-pointer`}
-                onClick={() => window.location.href = 'https://firebasestorage.googleapis.com/v0/b/mentorsforum-58af4.firebasestorage.app/o/Lt%20Col%20(Dr)%20Satish%20Dhage%20%20Brief%20Resume.docx?alt=media&token=ee225bfd-3ade-4587-aa29-e2a2394181cf'}>
-                <Download className="w-5 h-5 group-hover:animate-bounce" />
-                {t.downloadCV}
+              <button 
+                className={`${getButton('primary')} inline-flex items-center gap-3 group cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed`}
+                onClick={handleDownloadCV}
+                disabled={isDownloading}
+              >
+                {isDownloading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Download className="w-5 h-5 group-hover:animate-bounce" />
+                )}
+                {isDownloading ? (t.downloading || "Downloading...") : t.downloadCV}
               </button>
             </div>
           </div>
