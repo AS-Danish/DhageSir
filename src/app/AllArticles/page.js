@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, Suspense } from 'react';
-import { FileText, Search, Loader, ChevronDown, ExternalLink, Tag, Calendar, X } from 'lucide-react'; // Added X for the modal close button
+import { FileText, Search, Loader, ChevronDown, ExternalLink, Tag, Calendar, X } from 'lucide-react';
 import { db } from '../../firebase/firebaseConfig';
 import { collection, getDocs, query, orderBy, limit, startAfter } from 'firebase/firestore';
 import { useSearchParams } from 'next/navigation';
@@ -27,7 +27,6 @@ const getButton = (variant = 'primary') => {
     const variants = {
         primary: 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl py-4 px-8 font-bold transition-all hover:scale-105 hover:shadow-2xl',
         secondary: 'bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl py-3 px-6 font-bold transition-all',
-        // New style for the Image Preview Button
         tertiary: 'inline-flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl py-3 px-6 font-bold transition-all hover:scale-[1.02] hover:shadow-xl mt-auto',
     };
     return variants[variant];
@@ -37,7 +36,6 @@ const ARTICLES_PER_PAGE = 9;
 
 // Separate component that uses useSearchParams
 const ArticlesContent = () => {
-    // Get URL parameters
     const searchParams = useSearchParams();
     const urlCategory = searchParams?.get('category');
 
@@ -51,16 +49,67 @@ const ArticlesContent = () => {
     const [lastDoc, setLastDoc] = useState(null);
     const [hasMore, setHasMore] = useState(true);
     const [totalCount, setTotalCount] = useState(0);
-    const [viewingImage, setViewingImage] = useState(null); // State for the image preview modal
-
-    // --- Core Data Fetching and Logic (Unchanged from your provided code) ---
+    const [viewingImage, setViewingImage] = useState(null);
+    const [allArticleCategories, setAllArticleCategories] = useState([]);
+    const [categoryCounts, setCategoryCounts] = useState({});
 
     // Update selected category when URL changes
     useEffect(() => {
         if (urlCategory && urlCategory !== selectedCategory) {
             setSelectedCategory(urlCategory);
+            // Load articles for this category if not loaded
+            loadArticlesForCategory(urlCategory);
         }
     }, [urlCategory]);
+
+    // Fetch ALL article categories AND counts (not just loaded articles)
+    const fetchAllArticleCategories = async () => {
+        try {
+            // Check cache first
+            const cachedData = localStorage.getItem('all_article_categories_cache');
+            const cacheTimestamp = localStorage.getItem('all_article_categories_cache_timestamp');
+
+            if (cachedData && cacheTimestamp) {
+                const cacheAge = Date.now() - parseInt(cacheTimestamp);
+                if (cacheAge < 5 * 60 * 1000) {
+                    console.log('📦 Loading all article categories from cache');
+                    const parsed = JSON.parse(cachedData);
+                    setAllArticleCategories(parsed.categories);
+                    setCategoryCounts(parsed.counts);
+                    return;
+                }
+            }
+
+            // Fetch ALL articles to get all categories and counts
+            console.log('🔍 Fetching all article categories from Firebase...');
+            const allArticlesSnapshot = await getDocs(collection(db, "articles"));
+            
+            const categoryCountMap = {};
+            allArticlesSnapshot.docs.forEach(doc => {
+                const category = doc.data().article_category;
+                if (category && category.trim()) {
+                    const trimmedCategory = category.trim();
+                    categoryCountMap[trimmedCategory] = (categoryCountMap[trimmedCategory] || 0) + 1;
+                }
+            });
+
+            const categoriesArray = Object.keys(categoryCountMap);
+            setAllArticleCategories(categoriesArray);
+            setCategoryCounts(categoryCountMap);
+
+            // Cache the categories and counts
+            const cacheData = {
+                categories: categoriesArray,
+                counts: categoryCountMap
+            };
+            localStorage.setItem('all_article_categories_cache', JSON.stringify(cacheData));
+            localStorage.setItem('all_article_categories_cache_timestamp', Date.now().toString());
+
+            console.log('✅ Found categories with counts:', categoryCountMap);
+        } catch (err) {
+            console.error('Error fetching all article categories:', err);
+        }
+    };
 
     // Fetch initial articles from Firebase with caching
     const fetchArticlesFromFirebase = async () => {
@@ -72,13 +121,11 @@ const ArticlesContent = () => {
             // Use cache if it's less than 5 minutes old
             if (cachedArticles && cacheTimestamp) {
                 const cacheAge = Date.now() - parseInt(cacheTimestamp);
-                if (cacheAge < 5 * 60 * 1000) { // 5 minutes
+                if (cacheAge < 5 * 60 * 1000) {
                     console.log('📦 Loading articles from localStorage cache');
                     const cachedData = JSON.parse(cachedArticles);
                     setArticles(cachedData.articles);
                     setTotalCount(cachedData.totalCount);
-                    // Note: lastDoc can't be stored directly, so we reset or rely on loadMore to handle it.
-                    // For simplicity, we skip cache for pagination state to force re-fetch on first scroll if needed.
                     setLastDoc(null);
                     setHasMore(true); 
                     setLoading(false);
@@ -86,7 +133,6 @@ const ArticlesContent = () => {
                 }
             }
 
-            // No valid cache or cache expired, fetch from Firebase
             await fetchAndCacheArticles();
         } catch (err) {
             console.error('Error loading articles:', err);
@@ -112,7 +158,6 @@ const ArticlesContent = () => {
 
             const querySnapshot = await getDocs(articlesQuery);
 
-            // Check if data came from Firebase cache or server
             const source = querySnapshot.metadata.fromCache ? 'cache' : 'server';
             console.log(`📦 Articles loaded from ${source}`);
 
@@ -123,18 +168,16 @@ const ArticlesContent = () => {
 
             const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
 
-            // Update state
             setArticles(articlesData);
             setLastDoc(lastVisible);
             setHasMore(articlesData.length === ARTICLES_PER_PAGE && articlesData.length < total);
             setLoading(false);
 
-            // Cache in localStorage as backup
+            // Cache in localStorage
             const cacheData = {
                 articles: articlesData,
                 totalCount: total,
                 hasMore: articlesData.length === ARTICLES_PER_PAGE && articlesData.length < total,
-                // lastDoc is intentionally set to null for cache to force re-fetch of the doc reference on loadMore
             };
             localStorage.setItem('all_articles_cache', JSON.stringify(cacheData));
             localStorage.setItem('all_articles_cache_timestamp', Date.now().toString());
@@ -150,11 +193,9 @@ const ArticlesContent = () => {
     // Load categories from Firebase with caching
     const fetchCategoriesFromFirebase = async () => {
         try {
-            // Check localStorage cache first
             const cachedCategories = localStorage.getItem('categories_cache');
             const cacheTimestamp = localStorage.getItem('categories_cache_timestamp');
 
-            // Use cache if it's less than 5 minutes old
             if (cachedCategories && cacheTimestamp) {
                 const cacheAge = Date.now() - parseInt(cacheTimestamp);
                 if (cacheAge < 5 * 60 * 1000) {
@@ -164,7 +205,6 @@ const ArticlesContent = () => {
                 }
             }
 
-            // Fetch from Firebase
             const categoriesQuery = query(
                 collection(db, "categories"),
                 orderBy("created_at", "desc")
@@ -181,13 +221,67 @@ const ArticlesContent = () => {
 
             setCategories(categoriesData);
 
-            // Cache the data
             localStorage.setItem('categories_cache', JSON.stringify(categoriesData));
             localStorage.setItem('categories_cache_timestamp', Date.now().toString());
         } catch (err) {
             console.error('Error fetching categories:', err);
         }
     };
+
+    // Load articles for a specific category
+    const loadArticlesForCategory = async (categoryName) => {
+        if (categoryName === 'all') {
+            // For 'all', just load from cache or fetch normally
+            if (articles.length === 0) {
+                await fetchArticlesFromFirebase();
+            }
+            return;
+        }
+
+        try {
+            setLoading(true);
+
+            // Fetch ALL articles with this category
+            console.log(`🔍 Fetching articles for category: ${categoryName}`);
+            const categoryQuery = query(
+                collection(db, "articles"),
+                orderBy("created_at", "desc")
+            );
+
+            const querySnapshot = await getDocs(categoryQuery);
+            
+            const categoryArticles = querySnapshot.docs
+                .map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }))
+                .filter(article => 
+                    article.article_category && 
+                    article.article_category.trim() === categoryName.trim()
+                );
+
+            setArticles(categoryArticles);
+            setLastDoc(null);
+            setHasMore(false); // No pagination for category view
+            setLoading(false);
+
+            console.log(`✅ Loaded ${categoryArticles.length} articles for ${categoryName}`);
+        } catch (err) {
+            console.error('Error loading category articles:', err);
+            setError('Failed to load category articles.');
+            setLoading(false);
+        }
+    };
+
+    // Modified load more to reset when switching categories
+    useEffect(() => {
+        if (selectedCategory !== 'all') {
+            loadArticlesForCategory(selectedCategory);
+        } else {
+            // Reset to initial load for 'all'
+            fetchArticlesFromFirebase();
+        }
+    }, [selectedCategory]);
 
     // Load more articles (pagination)
     const loadMoreArticles = async () => {
@@ -196,12 +290,6 @@ const ArticlesContent = () => {
         try {
             setLoadingMore(true);
 
-            // Fetch the actual last document reference again if needed (or ensure lastDoc is always the DocSnapshot from the previous query)
-            // Assuming lastDoc holds the DocSnapshot object or Firebase is automatically handling the reference.
-            // If lastDoc is just the ID (which it is if pulled from cache logic above), this will fail.
-            // In a real app, you'd fetch the document snapshot by ID first, or adjust caching. 
-            // Here, we assume the lastVisible DocSnapshot is stored correctly in 'lastDoc'.
-            
             const articlesQuery = query(
                 collection(db, "articles"),
                 orderBy("created_at", "desc"),
@@ -211,7 +299,6 @@ const ArticlesContent = () => {
 
             const querySnapshot = await getDocs(articlesQuery);
 
-            // Check if data came from cache or server
             const source = querySnapshot.metadata.fromCache ? 'cache' : 'server';
             console.log(`📦 More articles loaded from ${source}`);
 
@@ -236,7 +323,8 @@ const ArticlesContent = () => {
         const loadData = async () => {
             await Promise.all([
                 fetchArticlesFromFirebase(),
-                fetchCategoriesFromFirebase()
+                fetchCategoriesFromFirebase(),
+                fetchAllArticleCategories()
             ]);
         };
 
@@ -250,7 +338,7 @@ const ArticlesContent = () => {
             article.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
         const matchesCategory = selectedCategory === 'all' ||
-            article.article_category === selectedCategory;
+            (article.article_category && article.article_category.trim() === selectedCategory.trim());
 
         return matchesSearch && matchesCategory;
     });
@@ -270,16 +358,20 @@ const ArticlesContent = () => {
         }
     };
 
-    // Get article count per category
+    // Get article count per category (use pre-calculated counts)
     const getArticleCountForCategory = (categoryName) => {
-        return articles.filter(article => article.article_category === categoryName).length;
+        return categoryCounts[categoryName] || 0;
     };
 
-    // --- NEW MODAL HANDLER ---
+    // Get all unique categories to display
+    const categoriesWithArticles = allArticleCategories
+        .map(name => ({ name }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    // Image preview handler
     const handleImagePreviewClick = (imageUrl) => {
         setViewingImage(imageUrl);
     };
-
 
     // Loading state
     if (loading) {
@@ -361,21 +453,25 @@ const ArticlesContent = () => {
                                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                     }`}
                             >
-                                All ({articles.length})
+                                All ({totalCount})
                             </button>
-                            {categories.map(category => (
-                                <button
-                                    key={category.id}
-                                    onClick={() => setSelectedCategory(category.name)}
-                                    className={`px-4 py-2 rounded-xl font-bold transition-all ${
-                                        selectedCategory === category.name
-                                            ? 'bg-orange-500 text-white shadow-lg'
-                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                        }`}
-                                >
-                                    {category.name} ({getArticleCountForCategory(category.name)})
-                                </button>
-                            ))}
+                            {categoriesWithArticles.map((category, idx) => {
+                                const count = getArticleCountForCategory(category.name);
+
+                                return (
+                                    <button
+                                        key={category.id || `category-${idx}`}
+                                        onClick={() => setSelectedCategory(category.name)}
+                                        className={`px-4 py-2 rounded-xl font-bold transition-all ${
+                                            selectedCategory === category.name
+                                                ? 'bg-orange-500 text-white shadow-lg'
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            }`}
+                                    >
+                                        {category.name} ({count})
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
@@ -442,7 +538,7 @@ const ArticlesContent = () => {
                                                 {article.description || ''}
                                             </p>
 
-                                            {/* Read More/View Image Button */}
+                                            {/* View Image Button */}
                                             {article.preview_image_url ? (
                                                 <button
                                                     onClick={() => handleImagePreviewClick(article.preview_image_url)}
@@ -504,7 +600,7 @@ const ArticlesContent = () => {
                 </div>
             </section>
 
-            {/* --- Image Viewing Modal (NEW) --- */}
+            {/* Image Viewing Modal */}
             {viewingImage && (
                 <div
                     className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
