@@ -53,11 +53,7 @@ const getButton = (variant = 'primary') => {
 };
 
 // 🎯 CONFIGURE YOUR "VIEW ALL VIDEOS" URL HERE
-const VIEW_ALL_VIDEOS_URL = '/AllVideos'; // Change this to your videos page URL
-// Examples:
-// const VIEW_ALL_VIDEOS_URL = '/videos';
-// const VIEW_ALL_VIDEOS_URL = 'https://www.youtube.com/@yourchannel/videos';
-// const VIEW_ALL_VIDEOS_URL = '/library';
+const VIEW_ALL_VIDEOS_URL = '/AllVideos'; 
 
 const VideosSection = ({ homepageData }) => {
   const [videos, setVideos] = useState([]);
