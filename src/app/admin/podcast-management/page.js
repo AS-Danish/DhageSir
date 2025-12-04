@@ -1065,17 +1065,17 @@ const AdminPodcastsPage = () => {
                       🎥 Watch on YouTube
                     </a>
 
-                    <div className="flex gap-2 mt-4">
+                    <div className="flex flex-wrap gap-2 mt-4">
                       <button
                         onClick={() => startEditPodcast(podcast)}
-                        className="flex-1 inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl py-2 px-4 font-bold transition-all"
+                        className="flex-1 min-w-[100px] inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl py-2 px-4 font-bold transition-all"
                       >
                         <Edit2 className="w-4 h-4" />
                         Edit
                       </button>
                       <button
                         onClick={() => handleDeletePodcast(podcast.id)}
-                        className="flex-1 inline-flex items-center justify-center gap-2 bg-gray-700 hover:bg-gray-800 text-white rounded-xl py-2 px-4 font-bold transition-all"
+                        className="flex-1 min-w-[100px] inline-flex items-center justify-center gap-2 bg-gray-700 hover:bg-gray-800 text-white rounded-xl py-2 px-4 font-bold transition-all"
                       >
                         <Trash2 className="w-4 h-4" />
                         Delete
@@ -1085,7 +1085,7 @@ const AdminPodcastsPage = () => {
                         return (
                           <button
                             onClick={() => handleDisplayOnHomepage(podcast)}
-                            className={`flex-1 inline-flex items-center justify-center gap-2 ${isOnHomepage
+                            className={`flex-1 min-w-[100px] inline-flex items-center justify-center gap-2 ${isOnHomepage
                               ? 'bg-red-500 hover:bg-red-600'
                               : 'bg-green-500 hover:bg-green-600'
                               } text-white rounded-xl py-2 px-4 font-bold transition-all`}
