@@ -107,7 +107,6 @@ const VideosSection = ({ homepageData }) => {
         return {
           id: video.video_id || `video-${index}`,
           title: video.title || 'Untitled Video',
-          description: video.description || '',
           thumbnail: video.thumbnail_url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
           videoUrl: video.video_url,
           embedUrl: getEmbedUrl(video.video_url),
@@ -276,9 +275,6 @@ const VideosSection = ({ homepageData }) => {
                           <h3 className={`text-lg font-bold ${theme.text.primary} mb-3 line-clamp-2 group-hover:${theme.text.brand} transition-colors`}>
                             {video.title}
                           </h3>
-                          <p className={`text-sm ${theme.text.secondary} line-clamp-2`}>
-                            {video.description}
-                          </p>
                         </div>
                       </div>
                     </div>
