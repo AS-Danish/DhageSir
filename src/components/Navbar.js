@@ -51,12 +51,12 @@ const ImprovedNavbar = () => {
       items: [
         {
           label: t.mentorBooks || "Mentor Books",
-          href: "/AllBooks?category=Mentor",
+          href: "/AllBooks?category=Communication+Skills+and+Competitive+Exams",
           icon: "📚"
         },
         {
           label: t.mentorArticles || "Mentor Articles",
-          href: "/AllArticles?category=Mentor",
+          href: "/AllArticles?category=Leadership+and+Motivation",
           icon: "📰"
         },
         {
