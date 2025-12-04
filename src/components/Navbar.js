@@ -38,7 +38,7 @@ const ImprovedNavbar = () => {
         },
         {
           label: t.militaryArticles,
-          href: "/AllArticles?category=Military",
+          href: "/AllArticles?category=Military+and+Defence",
           icon: "📰"
         }
       ]
