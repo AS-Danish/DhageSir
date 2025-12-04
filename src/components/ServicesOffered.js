@@ -171,7 +171,7 @@ const ServicesSection = () => {
   };
 
   return (
-    <section className={`py-16 md:py-20 ${theme.backgrounds.white} relative overflow-hidden`}>
+    <section className={`py-16 md:py-20 ${theme.backgrounds.white} relative overflow-hidden`} id='services'>
       {/* Animated Background Elements */}
       <div className={`absolute top-0 left-1/4 w-96 h-96 ${theme.backgrounds.primary} rounded-full filter blur-3xl opacity-30 animate-pulse`}></div>
       <div className={`absolute bottom-0 right-1/4 w-96 h-96 ${theme.backgrounds.primary} rounded-full filter blur-3xl opacity-30 animate-pulse`}></div>

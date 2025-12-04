@@ -107,7 +107,7 @@ const VideosSection = ({ homepageData }) => {
         return {
           id: video.video_id || `video-${index}`,
           title: video.title || 'Untitled Video',
-          description: video.description || 'No description available',
+          description: video.description || '',
           thumbnail: video.thumbnail_url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
           videoUrl: video.video_url,
           embedUrl: getEmbedUrl(video.video_url),

@@ -89,7 +89,7 @@ const HeroSection = () => {
                 <div className="flex flex-col sm:flex-row flex-wrap gap-3 md:gap-4 pt-2 md:pt-4">
                   <button className="group px-6 md:px-8 py-3 md:py-4 bg-white text-blue-900 rounded-lg font-semibold hover:shadow-xl transition transform hover:scale-105 flex items-center justify-center gap-2 text-sm md:text-base"
                     onClick={() => {
-                      document.getElementById("contact").scrollIntoView({
+                      document.getElementById("services").scrollIntoView({
                         behavior: "smooth"
                       });
                     }}

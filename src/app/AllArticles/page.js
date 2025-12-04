@@ -439,7 +439,7 @@ const ArticlesContent = () => {
 
                                             {/* Description */}
                                             <p className="text-gray-600 text-sm mb-4 line-clamp-3 flex-1">
-                                                {article.description || 'No description available.'}
+                                                {article.description || ''}
                                             </p>
 
                                             {/* Read More/View Image Button */}

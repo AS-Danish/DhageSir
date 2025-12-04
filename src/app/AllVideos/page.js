@@ -341,7 +341,7 @@ const VideosPage = () => {
                         {video.title}
                       </h3>
                       <p className={`${theme.text.secondary} text-sm leading-relaxed mb-5 line-clamp-3`}>
-                        {video.description || 'No description available'}
+                        {video.description || ''}
                       </p>
                       
                       {/* Watch Button */}

@@ -215,7 +215,7 @@ const AdminVideosPage = () => {
           if (videoId && title) {
             videos.push({
               title,
-              description: description || 'No description available',
+              description: description || '',
               video_url: videoUrl,
               thumbnail_url: thumbnailUrl,
               video_id: videoId,
@@ -892,7 +892,7 @@ const handleLoadMoreAllVideos = async () => {
       // Prepare video data
       const videoData = {
         title: videoDetails.title || 'Untitled Video',
-        description: videoDetails.description || 'No description available',
+        description: videoDetails.description || '',
         video_url: manualVideoForm.video_url,
         video_id: videoDetails.video_id,
         thumbnail_url: videoDetails.thumbnail_url,
