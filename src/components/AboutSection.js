@@ -118,7 +118,7 @@ const AboutSection = () => {
             </div>
 
             {/* CTA Buttons */}
-            <div className="flex flex-wrap gap-4 pt-4">
+            <div className="flex flex-wrap gap-4 pt-4 cursor-pointer">
               <button className={`${getButton('primary')} inline-flex items-center gap-3 group`}
                 onClick={() => window.location.href = 'https://firebasestorage.googleapis.com/v0/b/mentorsforum-58af4.firebasestorage.app/o/Lt%20Col%20(Dr)%20Satish%20Dhage%20%20Brief%20Resume.docx?alt=media&token=ee225bfd-3ade-4587-aa29-e2a2394181cf'}>
                 <Download className="w-5 h-5 group-hover:animate-bounce" />

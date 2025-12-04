@@ -52,6 +52,7 @@ const ServicesSection = () => {
       icon: Presentation,
       title: t.serviceTalkTitle,
       description: t.serviceTalkDesc,
+      
       features: [
         t.serviceTalkFeature1,
         t.serviceTalkFeature2,
