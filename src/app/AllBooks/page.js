@@ -1,8 +1,8 @@
 "use client";
 import React, { useState, useEffect, Suspense } from 'react';
-import { BookOpen, Search, ShoppingBag, ArrowRight, Loader } from 'lucide-react';
+import { BookOpen, Search, ShoppingBag, ArrowRight, Loader, Tag } from 'lucide-react';
 import { db } from '../../firebase/firebaseConfig';
-import { collection, getDocs, query, orderBy, where } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { useSearchParams } from 'next/navigation';
 
 // Theme configuration
@@ -38,54 +38,89 @@ const getButton = (variant = 'primary') => {
 // Separate component that uses useSearchParams
 const BooksContent = () => {
   const searchParams = useSearchParams();
-  const defaultCategory = searchParams.get('category') || 'All';
+  const urlCategory = searchParams?.get('category');
 
-  const [selectedCategory, setSelectedCategory] = useState(defaultCategory);
+  const [selectedCategory, setSelectedCategory] = useState(urlCategory || 'all');
   const [searchQuery, setSearchQuery] = useState('');
   const [books, setBooks] = useState([]);
-  const [categories, setCategories] = useState(['All']);
+  const [allBookCategories, setAllBookCategories] = useState([]);
+  const [categoryCounts, setCategoryCounts] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [totalCount, setTotalCount] = useState(0);
 
+  // Update selected category when URL changes
   useEffect(() => {
-    fetchBooksFromFirebase();
-    const urlCategory = searchParams.get('category');
-    if (urlCategory) {
+    if (urlCategory && urlCategory !== selectedCategory) {
       setSelectedCategory(urlCategory);
+      loadBooksForCategory(urlCategory);
     }
-  }, [searchParams]);
+  }, [urlCategory]);
+
+  // Fetch ALL book categories AND counts
+  const fetchAllBookCategories = async () => {
+    try {
+      const cachedData = localStorage.getItem('all_book_categories_cache');
+      const cacheTimestamp = localStorage.getItem('all_book_categories_cache_timestamp');
+
+      if (cachedData && cacheTimestamp) {
+        const cacheAge = Date.now() - parseInt(cacheTimestamp);
+        if (cacheAge < 5 * 60 * 1000) {
+          console.log('📦 Loading all book categories from cache');
+          const parsed = JSON.parse(cachedData);
+          setAllBookCategories(parsed.categories);
+          setCategoryCounts(parsed.counts);
+          return;
+        }
+      }
+
+      console.log('🔍 Fetching all book categories from Firebase...');
+      const allBooksSnapshot = await getDocs(collection(db, "books"));
+      
+      const categoryCountMap = {};
+      allBooksSnapshot.docs.forEach(doc => {
+        const category = doc.data().book_category;
+        if (category && category.trim()) {
+          const trimmedCategory = category.trim();
+          categoryCountMap[trimmedCategory] = (categoryCountMap[trimmedCategory] || 0) + 1;
+        }
+      });
+
+      const categoriesArray = Object.keys(categoryCountMap);
+      setAllBookCategories(categoriesArray);
+      setCategoryCounts(categoryCountMap);
+
+      const cacheData = {
+        categories: categoriesArray,
+        counts: categoryCountMap
+      };
+      localStorage.setItem('all_book_categories_cache', JSON.stringify(cacheData));
+      localStorage.setItem('all_book_categories_cache_timestamp', Date.now().toString());
+
+      console.log('✅ Found book categories with counts:', categoryCountMap);
+    } catch (err) {
+      console.error('Error fetching all book categories:', err);
+    }
+  };
 
   // Fetch books from Firebase with caching
   const fetchBooksFromFirebase = async () => {
     try {
-      const urlCategory = searchParams.get('category');
-      
-      // Check if it's Military category - fetch only specific books
-      if (urlCategory === 'Military') {
-        await fetchMilitaryBooks();
-        return;
-      }
-
-      // Check cache first for other categories
       const cachedBooks = localStorage.getItem('all_books_cache');
       const cacheTimestamp = localStorage.getItem('all_books_cache_timestamp');
       
-      // Use cache if it's less than 5 minutes old
       if (cachedBooks && cacheTimestamp) {
         const cacheAge = Date.now() - parseInt(cacheTimestamp);
-        if (cacheAge < 5 * 60 * 1000) { // 5 minutes
-          console.log('Loading all books from cache');
+        if (cacheAge < 5 * 60 * 1000) {
+          console.log('📦 Loading books from cache');
           const cachedData = JSON.parse(cachedBooks);
           setBooks(cachedData);
-          extractCategories(cachedData);
+          setTotalCount(cachedData.length);
           setLoading(false);
-          // Still fetch in background to update cache
-          fetchAndCacheBooks();
           return;
         }
       }
       
-      // No valid cache, fetch from Firebase
       await fetchAndCacheBooks();
     } catch (err) {
       console.error('Error loading books:', err);
@@ -94,47 +129,9 @@ const BooksContent = () => {
     }
   };
 
-  // Fetch specific Military books
-  const fetchMilitaryBooks = async () => {
-    try {
-      const bookTitles = [
-        'Communication skills for medical professionals',
-        "india's dual defence"
-      ];
-
-      const booksQuery = query(collection(db, "books"));
-      const querySnapshot = await getDocs(booksQuery);
-      
-      // Filter books by exact title match (case-insensitive)
-      const booksData = querySnapshot.docs
-        .map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }))
-        .filter(book => {
-          const bookTitle = book.title?.toLowerCase() || '';
-          return bookTitles.some(title => 
-            bookTitle.includes(title.toLowerCase()) || 
-            title.toLowerCase().includes(bookTitle)
-          );
-        });
-
-      console.log('Military books fetched:', booksData);
-      
-      setBooks(booksData);
-      setCategories(['All', 'Military']);
-      setLoading(false);
-    } catch (err) {
-      console.error('Error fetching military books:', err);
-      setError('Failed to load military books.');
-      setLoading(false);
-    }
-  };
-
   // Fetch and cache books from Firebase
   const fetchAndCacheBooks = async () => {
     try {
-      // Query all books ordered by creation date
       const booksQuery = query(
         collection(db, "books"),
         orderBy("created_at", "desc")
@@ -146,16 +143,14 @@ const BooksContent = () => {
         ...doc.data()
       }));
 
-      // Update state
       setBooks(booksData);
-      extractCategories(booksData);
+      setTotalCount(booksData.length);
       setLoading(false);
 
-      // Cache the data
       localStorage.setItem('all_books_cache', JSON.stringify(booksData));
       localStorage.setItem('all_books_cache_timestamp', Date.now().toString());
       
-      console.log('All books fetched and cached successfully');
+      console.log('✅ Books fetched and cached successfully');
     } catch (err) {
       console.error('Error fetching books from Firebase:', err);
       setError('Failed to load books from database.');
@@ -163,16 +158,98 @@ const BooksContent = () => {
     }
   };
 
-  // Extract unique categories from books
-  const extractCategories = (booksData) => {
-    const uniqueCategories = ['All'];
-    booksData.forEach(book => {
-      if (book.book_category && !uniqueCategories.includes(book.book_category)) {
-        uniqueCategories.push(book.book_category);
+  // Load books for a specific category
+  const loadBooksForCategory = async (categoryName) => {
+    if (categoryName === 'all') {
+      if (books.length === 0) {
+        await fetchBooksFromFirebase();
       }
-    });
-    setCategories(uniqueCategories);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Special handling for Military - fetch specific books by title
+      if (categoryName.trim().toLowerCase() === 'military') {
+        console.log(`🔍 Fetching specific military books by title...`);
+        const booksQuery = query(
+          collection(db, "books"),
+          orderBy("created_at", "desc")
+        );
+
+        const querySnapshot = await getDocs(booksQuery);
+        
+        const allowedTitles = [
+          'gkp disaster management in india for upsc',
+          "india's dual defence book"
+        ];
+        
+        const militaryBooks = querySnapshot.docs
+          .map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }))
+          .filter(book => 
+            book.title && allowedTitles.some(allowedTitle => 
+              book.title.toLowerCase().trim() === allowedTitle.toLowerCase()
+            )
+          );
+
+        setBooks(militaryBooks);
+        setLoading(false);
+        console.log(`✅ Loaded ${militaryBooks.length} military books`);
+        return;
+      }
+
+      console.log(`🔍 Fetching books for category: ${categoryName}`);
+      const booksQuery = query(
+        collection(db, "books"),
+        orderBy("created_at", "desc")
+      );
+
+      const querySnapshot = await getDocs(booksQuery);
+      
+      const categoryBooks = querySnapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        .filter(book => 
+          book.book_category && 
+          book.book_category.trim() === categoryName.trim()
+        );
+
+      setBooks(categoryBooks);
+      setLoading(false);
+
+      console.log(`✅ Loaded ${categoryBooks.length} books for ${categoryName}`);
+    } catch (err) {
+      console.error('Error loading category books:', err);
+      setError('Failed to load category books.');
+      setLoading(false);
+    }
   };
+
+  // Modified useEffect to reset when switching categories
+  useEffect(() => {
+    if (selectedCategory !== 'all') {
+      loadBooksForCategory(selectedCategory);
+    } else {
+      fetchBooksFromFirebase();
+    }
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      await Promise.all([
+        fetchBooksFromFirebase(),
+        fetchAllBookCategories()
+      ]);
+    };
+
+    loadData();
+  }, []);
 
   // Handle book purchase click
   const handlePurchaseClick = (book) => {
@@ -183,11 +260,34 @@ const BooksContent = () => {
     }
   };
 
+  // Get book count per category
+  const getBookCountForCategory = (categoryName) => {
+    // For military category, always show 2 since we're filtering to 2 specific books
+    if (categoryName.trim().toLowerCase() === 'military') {
+      return 2;
+    }
+    return categoryCounts[categoryName] || 0;
+  };
+
+  // Get all unique categories to display
+  const categoriesWithBooks = allBookCategories
+    .map(name => ({ name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
   const filteredBooks = books.filter(book => {
-    const matchesCategory = selectedCategory === 'All' || selectedCategory === 'Military';
-    const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         book.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
+    const matchesSearch = !searchQuery ||
+      book.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      book.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // For military, books are already filtered by title, just apply search
+    if (selectedCategory.trim().toLowerCase() === 'military') {
+      return matchesSearch;
+    }
+
+    const matchesCategory = selectedCategory === 'all' ||
+      (book.book_category && book.book_category.trim() === selectedCategory.trim());
+
+    return matchesSearch && matchesCategory;
   });
 
   // Loading state
@@ -222,12 +322,34 @@ const BooksContent = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 pt-20">
-      {/* Filter Section */}
-      <section className="py-8 bg-white border-b-2 border-gray-100 sticky top-0 z-40 shadow-lg">
+      {/* Hero Section */}
+      <section className={`bg-gradient-to-r ${theme.gradients.primary} py-16 shadow-xl`}>
         <div className="container mx-auto px-4 max-w-7xl">
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            {/* Search */}
-            <div className="relative w-full md:w-96">
+          <div className="text-center">
+            <h1 className="text-5xl md:text-6xl font-black text-white mb-4">
+              Book Collection
+            </h1>
+            <p className="text-xl text-orange-100 max-w-2xl mx-auto">
+              Explore our collection of {totalCount} books across various categories
+            </p>
+            {urlCategory && urlCategory !== 'all' && (
+              <div className="mt-4">
+                <span className="inline-flex items-center gap-2 px-6 py-3 bg-white/20 backdrop-blur-sm text-white rounded-full font-bold">
+                  <Tag className="w-5 h-5" />
+                  Filtered by: {urlCategory}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Filter Section */}
+      <section className="sticky top-20 z-40 bg-white border-b-2 border-gray-100 shadow-lg">
+        <div className="container mx-auto px-4 max-w-7xl py-6">
+          {/* Search Bar */}
+          <div className="mb-4">
+            <div className="relative w-full max-w-2xl mx-auto md:mx-0">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
@@ -237,27 +359,52 @@ const BooksContent = () => {
                 className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors text-black"
               />
             </div>
+          </div>
 
-            {/* Category Filter - Hidden for Military category */}
-            {selectedCategory !== 'Military' && (
-              <div className="flex gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0">
-                {categories.map((category) => (
+          {/* Category Filter - Scrollable on all devices */}
+          <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+            <div className="flex items-center gap-2 min-w-max">
+              <button
+                onClick={() => setSelectedCategory('all')}
+                className={`px-4 py-2 rounded-xl font-bold transition-all whitespace-nowrap ${
+                  selectedCategory === 'all'
+                    ? 'bg-orange-500 text-white shadow-lg'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                All ({totalCount})
+              </button>
+              {categoriesWithBooks.map((category, idx) => {
+                const count = getBookCountForCategory(category.name);
+
+                return (
                   <button
-                    key={category}
-                    onClick={() => setSelectedCategory(category)}
-                    className={`px-6 py-3 rounded-xl font-bold whitespace-nowrap transition-all ${
-                      selectedCategory === category
-                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-xl'
+                    key={`category-${idx}`}
+                    onClick={() => setSelectedCategory(category.name)}
+                    className={`px-4 py-2 rounded-xl font-bold transition-all whitespace-nowrap ${
+                      selectedCategory === category.name
+                        ? 'bg-orange-500 text-white shadow-lg'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    {category}
+                    {category.name} ({count})
                   </button>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
           </div>
         </div>
+
+        {/* Add custom scrollbar styles */}
+        <style jsx>{`
+          .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+          }
+          .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+        `}</style>
       </section>
 
       {/* Books Grid */}
@@ -265,17 +412,17 @@ const BooksContent = () => {
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="flex items-center justify-between mb-8">
             <h2 className={`text-3xl md:text-4xl font-black ${theme.text.primary}`}>
-              {selectedCategory === 'Military' ? 'Military Books' : selectedCategory === 'All' ? 'All Books' : selectedCategory}
+              {selectedCategory === 'all' ? 'All Books' : selectedCategory}
               <span className={`${theme.text.brand} ml-2`}>({filteredBooks.length})</span>
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
             {filteredBooks.map((book) => (
               <div key={book.id} className="group relative">
                 <div className={`${theme.cards.elevated} rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-2`}>
                   {/* Book Image */}
-                  <div className="relative overflow-hidden h-72">
+                  <div className="relative overflow-hidden h-64 sm:h-72">
                     <img 
                       src={book.book_image_url || 'https://images.unsplash.com/photo-1589998059171-988d887df646?w=400&h=500&fit=crop'}
                       alt={book.title}
@@ -287,30 +434,33 @@ const BooksContent = () => {
                     <div className={`absolute inset-0 bg-gradient-to-t ${theme.gradients.overlay} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
                     
                     {/* Category Badge */}
-                    <div className="absolute top-4 left-4">
-                      <span className={`px-3 py-1 ${theme.backgrounds.white} backdrop-blur-sm ${theme.text.primary} text-xs font-bold rounded-full ${theme.shadows.lg}`}>
-                        {selectedCategory === 'Military' ? 'Military' : book.book_category || 'General'}
-                      </span>
-                    </div>
+                    {book.book_category && (
+                      <div className="absolute top-4 left-4">
+                        <span className={`inline-flex items-center gap-1 px-3 py-1 ${theme.backgrounds.white} backdrop-blur-sm ${theme.text.primary} text-xs font-bold rounded-full ${theme.shadows.lg}`}>
+                          <Tag className="w-3 h-3" />
+                          {book.book_category}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Book Info */}
-                  <div className="p-6">
-                    <h3 className={`text-xl font-bold ${theme.text.primary} mb-3 line-clamp-2 min-h-[56px]`}>
+                  <div className="p-4 sm:p-6">
+                    <h3 className={`text-lg sm:text-xl font-bold ${theme.text.primary} mb-2 sm:mb-3 line-clamp-2 min-h-[48px] sm:min-h-[56px]`}>
                       {book.title}
                     </h3>
-                    <p className={`${theme.text.secondary} text-sm leading-relaxed mb-5 line-clamp-3`}>
+                    <p className={`${theme.text.secondary} text-sm leading-relaxed mb-4 sm:mb-5 line-clamp-3`}>
                       {book.description}
                     </p>
                     
                     {/* Purchase Button */}
                     <button 
                       onClick={() => handlePurchaseClick(book)}
-                      className={`w-full inline-flex items-center justify-center gap-2 ${getButton('primary')} py-3`}
+                      className={`w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl py-2.5 sm:py-3 px-4 font-bold transition-all hover:scale-105 hover:shadow-2xl text-sm sm:text-base`}
                     >
-                      <ShoppingBag className="w-5 h-5" />
+                      <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
                       Purchase Book
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 group-hover:translate-x-1 transition-transform" />
                     </button>
                   </div>
 
@@ -327,9 +477,9 @@ const BooksContent = () => {
               <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-2xl font-bold text-gray-900 mb-2">No books found</h3>
               <p className="text-gray-600">
-                {selectedCategory === 'Military' 
-                  ? 'The specified military books are not available in the database.'
-                  : 'Try adjusting your search or filter criteria'}
+                {searchQuery || selectedCategory !== 'all'
+                  ? 'Try adjusting your search or filter criteria'
+                  : 'No books available yet'}
               </p>
             </div>
           )}
