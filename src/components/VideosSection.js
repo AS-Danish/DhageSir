@@ -329,6 +329,58 @@ const VideosSection = ({ homepageData }) => {
             )}
           </>
         )}
+
+        {/* YouTube Channels & View All */}
+        <div className={`bg-gradient-to-br ${theme.gradients.light} rounded-3xl p-8 md:p-10 ${theme.shadows.xl} ${theme.borders.light} border`}>
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+            {/* Left Side - Channels */}
+            <div className="flex-1">
+              <h3 className={`text-2xl font-black ${theme.text.primary} mb-2 flex items-center gap-3`}>
+                <Youtube className={`w-8 h-8 ${theme.text.brand}`} />
+                Subscribe to Our Channels
+              </h3>
+              <p className={`${theme.text.secondary} mb-5`}>Get notified about new educational content and live sessions</p>
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                <a
+                  href="https://www.youtube.com/@drsatishdhage"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`inline-flex items-center justify-center gap-3 ${getButton('primary')} group`}
+                >
+                  <Youtube className="w-5 h-5" />
+                  Dr Satish Dhage
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </a>
+
+                <a
+                  href="https://www.youtube.com/@TheMentorsForum"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`inline-flex items-center justify-center gap-3 ${getButton('outline')} group`}
+                >
+                  <Youtube className="w-5 h-5" />
+                  The Mentors Forum
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </a>
+              </div>
+            </div>
+
+            {/* Right Side - View All Button */}
+            <div className={`lg:border-l ${theme.borders.dark} lg:pl-8`}>
+              <a
+                href="https://www.youtube.com/@drsatishdhage"
+                target="_blank" // Recommended: Opens the link in a new tab
+                rel="noopener noreferrer" // Recommended: Security measure for target="_blank"
+                className={`inline-flex items-center justify-center gap-3 ${getButton('dark')} group whitespace-nowrap`}
+              >
+                <Play className="w-6 h-6" />
+                View All Videos
+                <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );
