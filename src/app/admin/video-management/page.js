@@ -41,11 +41,11 @@ const HARDCODED_CATEGORIES = [
 ];
 
 const STATIC_CATEGORIES = [
-  "International Affairs",
+  "Competetive Exams and Current Affairs",
   "Disaster",
+  "International Affairs",
   "Military and Defence",
-  "Mentorship",
-  "Competetive Exam and Current Affairs",
+  "Uncategorized"
   // Add more categories as needed
 ];
 
@@ -228,6 +228,11 @@ const AdminVideosPage = () => {
             entry.querySelector('thumbnail')?.getAttribute('url') ||
             `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
+          // ✅ NEW: Extract published date from RSS feed
+          const publishedDate = entry.querySelector('published')?.textContent ||
+            entry.querySelector('pubDate')?.textContent ||
+            new Date().toISOString();
+
           const videoUrl = `https://www.youtube.com/watch?v=${videoId}&list=${playlistId}`; // Include playlist ID in URL
 
           if (videoId && title) {
@@ -237,6 +242,7 @@ const AdminVideosPage = () => {
               video_url: videoUrl,
               thumbnail_url: thumbnailUrl,
               video_id: videoId,
+              published_at_iso: publishedDate,
             });
           }
         });
@@ -329,23 +335,21 @@ const AdminVideosPage = () => {
       const allVideosQuery = query(collection(db, "videos"));
       const snapshot = await getDocs(allVideosQuery);
 
-      // Extract unique categories with their counts
+      // Extract unique categories by NAME (not ID) with their counts
       const categoriesMap = {};
 
       snapshot.docs.forEach(doc => {
         const data = doc.data();
-        const categoryId = data.category_id;
-        const categoryName = data.category || 'Uncategorized';
+        const categoryName = data.category || 'Uncategorized'; // Use category name
 
-        if (categoryId) {
-          if (!categoriesMap[categoryId]) {
-            categoriesMap[categoryId] = {
-              category_id: categoryId,
+        if (categoryName) {
+          if (!categoriesMap[categoryName]) {
+            categoriesMap[categoryName] = {
               category_name: categoryName,
               count: 0
             };
           }
-          categoriesMap[categoryId].count++;
+          categoriesMap[categoryName].count++;
         }
       });
 
@@ -376,8 +380,8 @@ const AdminVideosPage = () => {
 
       const q = query(
         collection(db, "videos"),
-        where("category_id", "==", categoryId), // Filter by category_id (Playlist ID)
-        orderBy("published_at_iso", "asc"),
+        where("category", "==", categoryId), // Filter by category_id (Playlist ID)
+        orderBy("created_at_iso", "asc"),
         limit(VIDEOS_PER_PAGE)
       );
 
@@ -404,57 +408,57 @@ const AdminVideosPage = () => {
 
   // Load ALL videos with pagination and optional category filter
   // Load ALL videos with pagination and optional category filter
-const loadAllVideos = async (page = 1, categoryFilter = 'all', useCache = true) => {
-  try {
-    const cacheKey = `all_videos_${categoryFilter}_page_${page}`;
+  const loadAllVideos = async (page = 1, categoryFilter = 'all', useCache = true) => {
+    try {
+      const cacheKey = `all_videos_${categoryFilter}_page_${page}`;
 
-    if (useCache && page === 1) {
-      const cached = getCachedData(cacheKey);
-      if (cached) {
-        return cached;
+      if (useCache && page === 1) {
+        const cached = getCachedData(cacheKey);
+        if (cached) {
+          return cached;
+        }
       }
-    }
 
-    let q;
+      let q;
 
-    if (categoryFilter === 'all') {
-      // Get all videos
-      q = query(
-        collection(db, "videos"),
-        orderBy("published_at_iso", "desc"),
-        limit(VIDEOS_PER_PAGE)
+      if (categoryFilter === 'all') {
+        // Get all videos
+        q = query(
+          collection(db, "videos"),
+          orderBy("created_at_iso", "asc"),
+          limit(VIDEOS_PER_PAGE)
+        );
+      } else {
+        // Filter by specific category_id
+        q = query(
+          collection(db, "videos"),
+          where("category", "==", categoryFilter),
+          orderBy("created_at_iso", "asc"),
+          limit(VIDEOS_PER_PAGE)
+        );
+      }
+
+      const snapshot = await getDocs(q);
+
+      const videos = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      const uniqueVideos = Array.from(
+        new Map(videos.map(video => [video.id, video])).values()
       );
-    } else {
-      // Filter by specific category_id
-      q = query(
-        collection(db, "videos"),
-        where("category_id", "==", categoryFilter),
-        orderBy("published_at_iso", "desc"),
-        limit(VIDEOS_PER_PAGE)
-      );
+
+      if (page === 1) {
+        setCachedData(cacheKey, uniqueVideos);
+      }
+
+      return uniqueVideos;
+    } catch (error) {
+      console.error('Error loading all videos:', error);
+      return [];
     }
-
-    const snapshot = await getDocs(q);
-
-    const videos = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-
-    const uniqueVideos = Array.from(
-      new Map(videos.map(video => [video.id, video])).values()
-    );
-
-    if (page === 1) {
-      setCachedData(cacheKey, uniqueVideos);
-    }
-
-    return uniqueVideos;
-  } catch (error) {
-    console.error('Error loading all videos:', error);
-    return [];
-  }
-};
+  };
 
   // Get total count for all videos or filtered by category
   const getAllVideosCount = async (categoryFilter = 'all') => {
@@ -471,7 +475,7 @@ const loadAllVideos = async (page = 1, categoryFilter = 'all', useCache = true) 
     } else {
       q = query(
         collection(db, "videos"),
-        where("category_id", "==", categoryFilter)
+        where("category", "==", categoryFilter)
       );
     }
 
@@ -484,57 +488,57 @@ const loadAllVideos = async (page = 1, categoryFilter = 'all', useCache = true) 
 
   // Load more for all videos view
   // Load more for all videos view
-const handleLoadMoreAllVideos = async () => {
-  setLoadingAllVideos(true);
+  const handleLoadMoreAllVideos = async () => {
+    setLoadingAllVideos(true);
 
-  try {
-    if (allVideos.length === 0) {
+    try {
+      if (allVideos.length === 0) {
+        setLoadingAllVideos(false);
+        return;
+      }
+
+      // Get the last document snapshot
+      const lastDocRef = doc(db, "videos", allVideos[allVideos.length - 1].id);
+      const lastDocSnap = await getDoc(lastDocRef);
+
+      let q;
+
+      if (selectedCategory === 'all') {
+        q = query(
+          collection(db, "videos"),
+          orderBy("created_at_iso", "asc"),
+          startAfter(lastDocSnap),
+          limit(VIDEOS_PER_PAGE)
+        );
+      } else {
+        q = query(
+          collection(db, "videos"),
+          where("category", "==", selectedCategory),
+          orderBy("created_at_iso", "asc"),
+          startAfter(lastDocSnap),
+          limit(VIDEOS_PER_PAGE)
+        );
+      }
+
+      const snapshot = await getDocs(q);
+      const newVideos = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      const allLoadedVideos = [...allVideos, ...newVideos];
+      const uniqueVideos = Array.from(
+        new Map(allLoadedVideos.map(video => [video.id, video])).values()
+      );
+
+      setAllVideos(uniqueVideos);
+      setAllVideosPage(prev => prev + 1);
+    } catch (error) {
+      console.error('Error loading more videos:', error);
+    } finally {
       setLoadingAllVideos(false);
-      return;
     }
-
-    // Get the last document snapshot
-    const lastDocRef = doc(db, "videos", allVideos[allVideos.length - 1].id);
-    const lastDocSnap = await getDoc(lastDocRef);
-
-    let q;
-
-    if (selectedCategory === 'all') {
-      q = query(
-        collection(db, "videos"),
-        orderBy("published_at_iso", "desc"),
-        startAfter(lastDocSnap),
-        limit(VIDEOS_PER_PAGE)
-      );
-    } else {
-      q = query(
-        collection(db, "videos"),
-        where("category_id", "==", selectedCategory),
-        orderBy("published_at_iso", "desc"),
-        startAfter(lastDocSnap),
-        limit(VIDEOS_PER_PAGE)
-      );
-    }
-
-    const snapshot = await getDocs(q);
-    const newVideos = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-
-    const allLoadedVideos = [...allVideos, ...newVideos];
-    const uniqueVideos = Array.from(
-      new Map(allLoadedVideos.map(video => [video.id, video])).values()
-    );
-
-    setAllVideos(uniqueVideos);
-    setAllVideosPage(prev => prev + 1);
-  } catch (error) {
-    console.error('Error loading more videos:', error);
-  } finally {
-    setLoadingAllVideos(false);
-  }
-};
+  };
 
   // Load more videos for a category
   const handleLoadMore = async (categoryId) => {
@@ -549,7 +553,7 @@ const handleLoadMoreAllVideos = async () => {
       const baseQuery = query(
         collection(db, "videos"),
         where("category_id", "==", categoryId), // Filter by category_id (Playlist ID)
-        orderBy("published_at_iso", "asc"),
+        orderBy("created_at_iso", "asc"),
       );
 
       // Get the last document snapshot
@@ -720,6 +724,7 @@ const handleLoadMoreAllVideos = async () => {
                 category_id: category.category_id,
                 category: category.category_name,
                 created_at_iso: new Date().toISOString(),
+                published_at_iso: video.published_at_iso || new Date().toISOString(),
               };
 
               const docRef = await addDoc(collection(db, "videos"), videoData);
@@ -919,6 +924,7 @@ const handleLoadMoreAllVideos = async () => {
         category: manualVideoForm.category,
         category_id: categoryConfig.category_id,
         created_at_iso: new Date().toISOString(), // Fixed: was created_at, should be created_at_iso
+        published_at_iso: new Date().toISOString(),
       };
 
       // Add to Firestore
@@ -1235,23 +1241,21 @@ const handleLoadMoreAllVideos = async () => {
               >
                 <option value="all">All Categories ({allVideosTotal} videos)</option>
 
-                {/* Show dynamic categories from database */}
-                {dynamicCategories.length > 0 && (
-                  <>
-                    {dynamicCategories.map((cat, idx) => (
-                      <option key={`dynamic-${idx}`} value={cat.category_id}>
-                        {cat.category_name} ({cat.count} videos)
-                      </option>
-                    ))}
-                  </>
+                {/* Show dynamic categories from database - no duplicates */}
+                {dynamicCategories.length > 0 ? (
+                  dynamicCategories.map((cat, idx) => (
+                    <option key={`category-${cat.category_name}-${idx}`} value={cat.category_name}>
+                      {cat.category_name} ({cat.count} videos)
+                    </option>
+                  ))
+                ) : (
+                  /* Fallback: Show unique categories from hardcoded list */
+                  [...new Set(HARDCODED_CATEGORIES.map(cat => cat.category_name))].map((categoryName, idx) => (
+                    <option key={`fallback-${idx}`} value={categoryName}>
+                      {categoryName}
+                    </option>
+                  ))
                 )}
-
-                {/* Fallback: Show hardcoded categories if no dynamic ones exist yet */}
-                {dynamicCategories.length === 0 && HARDCODED_CATEGORIES.map((cat, idx) => (
-                  <option key={`hardcoded-${idx}`} value={cat.category_id}>
-                    {cat.category_name} ({totalCountsByCategory[cat.category_id] || 0} videos)
-                  </option>
-                ))}
               </select>
             </div>
             <div className="text-sm text-gray-600">
@@ -1505,7 +1509,7 @@ const handleLoadMoreAllVideos = async () => {
               <h2 className="text-3xl font-black text-gray-900">
                 {selectedCategory === 'all'
                   ? 'All Videos'
-                  : HARDCODED_CATEGORIES.find(c => c.category_id === selectedCategory)?.category_name || 'Videos'
+                  : selectedCategory
                 }
               </h2>
               <p className="text-gray-600">
