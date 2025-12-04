@@ -10,10 +10,30 @@ import ServicesSection from "@/components/ServicesOffered";
 import ContactSection from "@/components/ContactUs";
 import AboutSection from "@/components/AboutSection";
 import PodcastsSection from "@/components/PodcastsSection";
-import { Loader } from 'lucide-react';
+import { Loader, ArrowUp } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 export default function Home() {
   const { homepageData, loading, error } = useHomepageData();
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // Handle scroll visibility
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 400);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Scroll to top function
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
 
   // Show loading state
   if (loading) {
@@ -58,6 +78,17 @@ export default function Home() {
         <ServicesSection/>
         <ContactSection/>
       </main>
+
+      {/* Scroll to Top Button */}
+      <button
+        onClick={scrollToTop}
+        className={`fixed bottom-6 right-6 z-50 p-3 md:p-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl ${
+          showScrollTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-16 pointer-events-none'
+        }`}
+        aria-label="Scroll to top"
+      >
+        <ArrowUp className="w-5 h-5 md:w-6 md:h-6" />
+      </button>
     </div>
   );
 }
