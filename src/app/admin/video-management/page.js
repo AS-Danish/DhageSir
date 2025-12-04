@@ -610,6 +610,8 @@ const AdminVideosPage = () => {
   // Add this function before autoFetchAllCategories
   // REPLACE the extractVideoDetails function (around line 540-580) with this enhanced version:
 
+  // REPLACE the extractVideoDetails function (around line 540-580) with this enhanced version:
+
   const extractVideoDetails = async (videoUrl) => {
     try {
       // Extract video ID from various YouTube URL formats
@@ -643,6 +645,28 @@ const AdminVideosPage = () => {
 
       console.log(`📹 Extracted Video ID: ${videoId}`);
 
+      // ✅ NEW: Try to get published date from YouTube Data API (via CORS proxy)
+      let publishedDate = null;
+
+      try {
+        // Using a simple method to extract publish date from YouTube's page data
+        const pageUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        const corsProxy = 'https://api.allorigins.win/raw?url=';
+        const response = await fetch(corsProxy + encodeURIComponent(pageUrl));
+
+        if (response.ok) {
+          const html = await response.text();
+          // Try to find uploadDate in the structured data
+          const uploadDateMatch = html.match(/"uploadDate":"([^"]+)"/);
+          if (uploadDateMatch && uploadDateMatch[1]) {
+            publishedDate = uploadDateMatch[1];
+            console.log(`📅 Found publish date: ${publishedDate}`);
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Could not fetch publish date, will use current date as fallback');
+      }
+
       // Try to fetch video details using oEmbed API (works for both regular videos and shorts)
       const oEmbedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
 
@@ -659,6 +683,7 @@ const AdminVideosPage = () => {
             thumbnail_url: data.thumbnail_url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
             channel_name: data.author_name,
             description: '', // oEmbed doesn't provide description
+            published_at_iso: publishedDate || new Date().toISOString(), // Use extracted date or fallback
           };
         }
       } catch (error) {
@@ -697,6 +722,7 @@ const AdminVideosPage = () => {
         thumbnail_url: thumbnailUrl,
         channel_name: '', // Will need to be filled manually
         description: '',
+        published_at_iso: publishedDate || new Date().toISOString(), // Use extracted date or fallback
       };
     } catch (error) {
       console.error('❌ Error extracting video details:', error);
@@ -893,7 +919,7 @@ const AdminVideosPage = () => {
     try {
       setAddingVideo(true);
 
-      // Extract video details
+      // Extract video details (now includes published_at_iso)
       const videoDetails = await extractVideoDetails(manualVideoForm.video_url);
 
       // If channel name couldn't be fetched and user didn't select one
@@ -912,14 +938,13 @@ const AdminVideosPage = () => {
       if (!categoryConfig) {
         categoryConfig = {
           category_name: manualVideoForm.category,
-          category_id: manualVideoForm.category.toLowerCase().replace(/\s+/g, '_'), // Generate ID from name
+          category_id: manualVideoForm.category.toLowerCase().replace(/\s+/g, '_'),
           channel_name: videoDetails.channel_name || manualVideoForm.channel_name,
           channel_id: 'manual_entry',
         };
       }
 
-      // Check for duplicates
-      // Check for duplicates
+      // Check for duplicates by video_id
       const existingQuery = query(
         collection(db, "videos"),
         where("video_id", "==", videoDetails.video_id)
@@ -943,8 +968,8 @@ const AdminVideosPage = () => {
         channel_id: categoryConfig.channel_id,
         category: manualVideoForm.category,
         category_id: categoryConfig.category_id,
-        created_at_iso: new Date().toISOString(), // Fixed: was created_at, should be created_at_iso
-        published_at_iso: new Date().toISOString(),
+        created_at_iso: new Date().toISOString(), // When added to database
+        published_at_iso: videoDetails.published_at_iso, // ✅ FIXED: Use actual YouTube upload date
       };
 
       // Add to Firestore
