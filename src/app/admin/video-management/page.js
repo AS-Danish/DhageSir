@@ -71,6 +71,28 @@ const getButton = (variant = 'primary') => {
   return variants[variant];
 };
 
+// Utility function to remove duplicate videos by video_id
+const deduplicateVideos = (videos) => {
+  const uniqueMap = new Map();
+
+  videos.forEach(video => {
+    const videoId = video.video_id;
+
+    // If we haven't seen this video_id yet, or if this instance has more data, keep it
+    if (!uniqueMap.has(videoId)) {
+      uniqueMap.set(videoId, video);
+    } else {
+      // Keep the one with more complete data (e.g., has description)
+      const existing = uniqueMap.get(videoId);
+      if (video.description && !existing.description) {
+        uniqueMap.set(videoId, video);
+      }
+    }
+  });
+
+  return Array.from(uniqueMap.values());
+};
+
 const AdminVideosPage = () => {
   const [editingVideo, setEditingVideo] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -381,7 +403,7 @@ const AdminVideosPage = () => {
       const q = query(
         collection(db, "videos"),
         where("category", "==", categoryId), // Filter by category_id (Playlist ID)
-        orderBy("created_at_iso", "asc"),
+        orderBy("published_at_iso", "desc"),
         limit(VIDEOS_PER_PAGE)
       );
 
@@ -391,9 +413,8 @@ const AdminVideosPage = () => {
         ...doc.data()
       }));
 
-      const uniqueVideos = Array.from(
-        new Map(videos.map(video => [video.id, video])).values()
-      );
+      // ✅ Deduplicate by video_id
+      const uniqueVideos = deduplicateVideos(videos);
 
       if (page === 1) {
         setCachedData(cacheKey, uniqueVideos);
@@ -425,7 +446,7 @@ const AdminVideosPage = () => {
         // Get all videos
         q = query(
           collection(db, "videos"),
-          orderBy("created_at_iso", "asc"),
+          orderBy("published_at_iso", "desc"),
           limit(VIDEOS_PER_PAGE)
         );
       } else {
@@ -433,7 +454,7 @@ const AdminVideosPage = () => {
         q = query(
           collection(db, "videos"),
           where("category", "==", categoryFilter),
-          orderBy("created_at_iso", "asc"),
+          orderBy("published_at_iso", "desc"),
           limit(VIDEOS_PER_PAGE)
         );
       }
@@ -445,9 +466,8 @@ const AdminVideosPage = () => {
         ...doc.data()
       }));
 
-      const uniqueVideos = Array.from(
-        new Map(videos.map(video => [video.id, video])).values()
-      );
+      // ✅ Deduplicate by video_id (not document id)
+      const uniqueVideos = deduplicateVideos(videos);
 
       if (page === 1) {
         setCachedData(cacheKey, uniqueVideos);
@@ -506,7 +526,7 @@ const AdminVideosPage = () => {
       if (selectedCategory === 'all') {
         q = query(
           collection(db, "videos"),
-          orderBy("created_at_iso", "asc"),
+          orderBy("published_at_iso", "desc"),
           startAfter(lastDocSnap),
           limit(VIDEOS_PER_PAGE)
         );
@@ -514,7 +534,7 @@ const AdminVideosPage = () => {
         q = query(
           collection(db, "videos"),
           where("category", "==", selectedCategory),
-          orderBy("created_at_iso", "asc"),
+          orderBy("published_at_iso", "desc"),
           startAfter(lastDocSnap),
           limit(VIDEOS_PER_PAGE)
         );
@@ -527,9 +547,8 @@ const AdminVideosPage = () => {
       }));
 
       const allLoadedVideos = [...allVideos, ...newVideos];
-      const uniqueVideos = Array.from(
-        new Map(allLoadedVideos.map(video => [video.id, video])).values()
-      );
+      // ✅ Deduplicate by video_id
+      const uniqueVideos = deduplicateVideos(allLoadedVideos);
 
       setAllVideos(uniqueVideos);
       setAllVideosPage(prev => prev + 1);
@@ -553,7 +572,7 @@ const AdminVideosPage = () => {
       const baseQuery = query(
         collection(db, "videos"),
         where("category_id", "==", categoryId), // Filter by category_id (Playlist ID)
-        orderBy("created_at_iso", "asc"),
+        orderBy("published_at_iso", "desc"),
       );
 
       // Get the last document snapshot
@@ -568,9 +587,8 @@ const AdminVideosPage = () => {
       }));
 
       const allVideos = [...currentVideos, ...newVideos];
-      const uniqueVideos = Array.from(
-        new Map(allVideos.map(video => [video.id, video])).values()
-      );
+      // ✅ Deduplicate by video_id
+      const uniqueVideos = deduplicateVideos(allVideos);
 
       setVideosByCategory(prev => ({
         ...prev,
@@ -705,18 +723,18 @@ const AdminVideosPage = () => {
           const fetchedVideos = await parseYouTubePlaylistRSS(category.category_id);
 
           // Get existing videos to check for duplicates, filtering by the specific playlist
-          const existingQuery = query(
-            collection(db, "videos"),
-            where("category_id", "==", category.category_id) // Use category_id (Playlist ID)
-          );
+          // Get ALL existing videos (not just from this playlist) to check for duplicates by video_id
+          const existingQuery = query(collection(db, "videos")); // ✅ Check ALL videos, not just this playlist
           const existingSnapshot = await getDocs(existingQuery);
-          const existingUrls = new Set(existingSnapshot.docs.map(doc => doc.data().video_url));
+
+          // Create a Set of existing video IDs (this is the true unique identifier)
           const existingVideoIds = new Set(
             existingSnapshot.docs.map(doc => doc.data().video_id)
           );
 
           for (const video of fetchedVideos) {
-            if (!existingUrls.has(video.video_url) && !existingVideoIds.has(video.video_id)) {
+            // ✅ Only check video_id, not URL (same video can have different URLs)
+            if (!existingVideoIds.has(video.video_id)) {
               const videoData = {
                 ...video,
                 channel_id: category.channel_id,
@@ -899,6 +917,7 @@ const AdminVideosPage = () => {
         };
       }
 
+      // Check for duplicates
       // Check for duplicates
       const existingQuery = query(
         collection(db, "videos"),
