@@ -87,6 +87,7 @@ const AdminBooksPage = () => {
 
   const [videoFile, setVideoFile] = useState(null);
   const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoPreview, setVideoPreview] = useState("");
 
   const invalidateCache = (type) => {
     if (type === "books" || type === "all") {
@@ -192,26 +193,26 @@ const AdminBooksPage = () => {
   };
 
   const uploadVideo = async (file) => {
-  try {
-    setUploadingVideo(true);
+    try {
+      setUploadingVideo(true);
 
-    const timestamp = Date.now();
-    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
-    const fileName = `${timestamp}_${sanitizedFileName}`;
-    const storageRef = ref(storage, `book-videos/${fileName}`);
+      const timestamp = Date.now();
+      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
+      const fileName = `${timestamp}_${sanitizedFileName}`;
+      const storageRef = ref(storage, `book-videos/${fileName}`);
 
-    const snapshot = await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(snapshot.ref);
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
 
-    return downloadURL;
-  } catch (error) {
-    console.error("Error uploading video:", error);
-    alert("Failed to upload video: " + error.message);
-    throw error;
-  } finally {
-    setUploadingVideo(false);
-  }
-};
+      return downloadURL;
+    } catch (error) {
+      console.error("Error uploading video:", error);
+      alert("Failed to upload video: " + error.message);
+      throw error;
+    } finally {
+      setUploadingVideo(false);
+    }
+  };
 
   const updateNewsTicker = async (newBook) => {
     try {
@@ -268,9 +269,9 @@ const AdminBooksPage = () => {
 
       let videoUrl = bookForm.promo_video_url;
 
-if (videoFile) {
-  videoUrl = await uploadVideo(videoFile);
-}
+      if (videoFile) {
+        videoUrl = await uploadVideo(videoFile);
+      }
 
       const bookData = {
         title: bookForm.title,
@@ -318,9 +319,9 @@ if (videoFile) {
 
       let videoUrl = bookForm.promo_video_url;
 
-if (videoFile) {
-  videoUrl = await uploadVideo(videoFile);
-}
+      if (videoFile) {
+        videoUrl = await uploadVideo(videoFile);
+      }
 
       const bookData = {
         title: bookForm.title,
@@ -548,18 +549,24 @@ if (videoFile) {
   };
 
   const handleVideoFileChange = (e) => {
-  const file = e.target.files?.[0];
+    const file = e.target.files?.[0];
 
-  if (file) {
-    if (!file.type.startsWith("video/")) {
-      alert("Please select a valid video file");
-      return;
+    if (file) {
+      if (!file.type.startsWith("video/")) {
+        alert("Please select a valid video file");
+        return;
+      }
+
+      setVideoFile(file);
+      setBookForm({ ...bookForm, promo_video_url: "" });
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setVideoPreview(reader.result.toString());
+      };
+      reader.readAsDataURL(file);
     }
-
-    setVideoFile(file);
-    setBookForm({ ...bookForm, promo_video_url: "" });
-  }
-};
+  };
 
   const handleDisplayOnHomepage = async (book) => {
     const isOnHomepage = homepageBooks.some((b) => b.id === book.id);
@@ -634,6 +641,7 @@ if (videoFile) {
     setImagePreview(book.book_image_url);
     setImageFile(null);
     setVideoFile(null);
+    setVideoPreview(book.promo_video_url || "");
   };
 
   const resetBookForm = () => {
@@ -650,6 +658,7 @@ if (videoFile) {
     setImageFile(null);
     setImagePreview("");
     setVideoFile(null);
+    setVideoPreview("");
   };
 
   const startEditCategory = (category) => {
@@ -733,21 +742,19 @@ if (videoFile) {
           <div className="flex gap-4">
             <button
               onClick={() => setActiveTab("books")}
-              className={`px-6 py-4 font-bold border-b-4 transition-all ${
-                activeTab === "books"
-                  ? "border-orange-500 text-orange-600"
-                  : "border-transparent text-gray-600 hover:text-gray-900"
-              }`}
+              className={`px-6 py-4 font-bold border-b-4 transition-all ${activeTab === "books"
+                ? "border-orange-500 text-orange-600"
+                : "border-transparent text-gray-600 hover:text-gray-900"
+                }`}
             >
               Books ({books.length})
             </button>
             <button
               onClick={() => setActiveTab("categories")}
-              className={`px-6 py-4 font-bold border-b-4 transition-all ${
-                activeTab === "categories"
-                  ? "border-orange-500 text-orange-600"
-                  : "border-transparent text-gray-600 hover:text-gray-900"
-              }`}
+              className={`px-6 py-4 font-bold border-b-4 transition-all ${activeTab === "categories"
+                ? "border-orange-500 text-orange-600"
+                : "border-transparent text-gray-600 hover:text-gray-900"
+                }`}
             >
               Categories ({categories.length})
             </button>
@@ -849,47 +856,69 @@ if (videoFile) {
                   </div>
 
                   <div className="md:col-span-2">
-  <label className="block text-sm font-bold text-gray-900 mb-2">
-    Promo Video (Optional)
-  </label>
-  <label className="block w-full cursor-pointer">
-    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-orange-500 transition-colors">
-      <div className="flex flex-col items-center">
-        <Upload className="w-10 h-10 text-gray-400 mb-2" />
-        <p className="text-sm font-bold text-gray-900 mb-1">
-          {uploadingVideo
-            ? "Uploading video..."
-            : videoFile
-            ? videoFile.name
-            : bookForm.promo_video_url
-            ? "Video uploaded"
-            : "Click to upload promo video"}
-        </p>
-        <p className="text-xs text-gray-500">
-          MP4, MOV, AVI (any size)
-        </p>
-      </div>
-    </div>
-    <input
-      type="file"
-      accept="video/*"
-      onChange={handleVideoFileChange}
-      className="hidden"
-      disabled={uploadingVideo}
-    />
-  </label>
-  {(videoFile || bookForm.promo_video_url) && (
-    <button
-      onClick={() => {
-        setVideoFile(null);
-        setBookForm({ ...bookForm, promo_video_url: "" });
-      }}
-      className="mt-2 text-sm text-red-600 hover:text-red-700"
-    >
-      Remove video
-    </button>
-  )}
-</div>
+                    <label className="block text-sm font-bold text-gray-900 mb-2">
+                      Promo Video (Optional)
+                    </label>
+
+                    <div className="flex flex-col md:flex-row gap-4 items-start">
+                      <div className="flex-1 w-full">
+                        <label className="block w-full cursor-pointer">
+                          <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-orange-500 transition-colors">
+                            <div className="flex flex-col items-center">
+                              <Upload className="w-10 h-10 text-gray-400 mb-2" />
+                              <p className="text-sm font-bold text-gray-900 mb-1">
+                                {uploadingVideo
+                                  ? "Uploading video..."
+                                  : videoFile
+                                    ? videoFile.name
+                                    : "Click to upload promo video"}
+                              </p>
+                              <p className="text-xs text-gray-500">MP4, MOV, AVI (any size)</p>
+                            </div>
+                          </div>
+                          <input
+                            type="file"
+                            accept="video/*"
+                            onChange={handleVideoFileChange}
+                            className="hidden"
+                            disabled={uploadingVideo || !!bookForm.promo_video_url}
+                          />
+                        </label>
+                      </div>
+
+                      <div className="flex items-center justify-center">
+                        <span className="text-gray-400 font-bold">OR</span>
+                      </div>
+
+                      <div className="flex-1 w-full">
+                        <input
+                          type="url"
+                          value={bookForm.promo_video_url}
+                          onChange={(e) => {
+                            setBookForm({ ...bookForm, promo_video_url: e.target.value });
+                            setVideoPreview(e.target.value);
+                            setVideoFile(null);
+                          }}
+                          placeholder="Enter video URL"
+                          disabled={!!videoFile}
+                          className="text-black w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        />
+                      </div>
+                    </div>
+
+                    {(videoFile || bookForm.promo_video_url) && (
+                      <button
+                        onClick={() => {
+                          setVideoFile(null);
+                          setVideoPreview("");
+                          setBookForm({ ...bookForm, promo_video_url: "" });
+                        }}
+                        className="mt-2 text-sm text-red-600 hover:text-red-700"
+                      >
+                        Remove video
+                      </button>
+                    )}
+                  </div>
 
                   <div className="md:col-span-2">
                     <label className="block text-sm font-bold text-gray-900 mb-2">
@@ -921,8 +950,8 @@ if (videoFile) {
                                 {uploadingImage
                                   ? "Uploading..."
                                   : imageFile
-                                  ? imageFile.name
-                                  : "Click to upload image"}
+                                    ? imageFile.name
+                                    : "Click to upload image"}
                               </p>
                               <p className="text-xs text-gray-500">
                                 PNG, JPG up to 5MB
@@ -1079,11 +1108,10 @@ if (videoFile) {
 
                           <button
                             onClick={() => handleDisplayOnHomepage(book)}
-                            className={`flex-1 inline-flex items-center justify-center gap-2 ${
-                              isOnHomepage
-                                ? "bg-red-500 hover:bg-red-600"
-                                : "bg-green-500 hover:bg-green-600"
-                            } text-white rounded-xl py-2 px-4 font-bold transition-all`}
+                            className={`flex-1 inline-flex items-center justify-center gap-2 ${isOnHomepage
+                              ? "bg-red-500 hover:bg-red-600"
+                              : "bg-green-500 hover:bg-green-600"
+                              } text-white rounded-xl py-2 px-4 font-bold transition-all`}
                           >
                             {isOnHomepage ? (
                               <>
