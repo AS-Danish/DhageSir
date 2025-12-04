@@ -45,7 +45,8 @@ const STATIC_CATEGORIES = [
   "Disaster",
   "International Affairs",
   "Military and Defence",
-  "Uncategorized"
+  "Uncategorized",
+  "Mentorship"
   // Add more categories as needed
 ];
 
