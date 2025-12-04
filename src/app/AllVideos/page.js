@@ -102,10 +102,11 @@ const VideosPage = () => {
       const total = countSnapshot.size;
       setTotalCount(total);
 
-      // Query videos with pagination (Firebase will use IndexedDB cache)
+      // Query videos with pagination - sorting by published_at_iso for actual video date
+      // Using "desc" to show LATEST videos first (newest to oldest)
       const videosQuery = query(
         collection(db, "videos"),
-        orderBy("created_at", "desc"),
+        orderBy("published_at_iso", "desc"),
         limit(VIDEOS_PER_PAGE)
       );
       
@@ -155,7 +156,7 @@ const VideosPage = () => {
 
       const videosQuery = query(
         collection(db, "videos"),
-        orderBy("created_at", "desc"),
+        orderBy("published_at_iso", "desc"),
         startAfter(lastDoc),
         limit(VIDEOS_PER_PAGE)
       );
