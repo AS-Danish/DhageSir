@@ -237,7 +237,7 @@ const ArticlesSection = ({ homepageData }) => {
                                 {/* View All Button - Mobile */}
                                 <div className="flex justify-center md:hidden">
                                     <a
-                                        href="/articles"
+                                        href="/AllArticles"
                                         className={`inline-flex items-center gap-2 ${getButton('primary')} group w-full md:w-auto justify-center`}
                                     >
                                         <Library className="w-5 h-5" />
