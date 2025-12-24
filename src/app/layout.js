@@ -2,6 +2,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import LayoutClient from './layout-client';
 import { AuthProvider } from '@/context/AuthContext';
+import ClarityInit from '@/components/ClarityInit';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -95,6 +96,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className={inter.className}>
+        <ClarityInit />
         <AuthProvider>
           <LayoutClient>{children}</LayoutClient>
         </AuthProvider>
