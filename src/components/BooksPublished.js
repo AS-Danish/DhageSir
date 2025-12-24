@@ -50,7 +50,7 @@ const BooksSection = ({ homepageData }) => {
         return words.slice(0, wordLimit).join(' ') + '...';
     };
 
-    // Handle book purchase - redirect to purchase URL (UPDATED)
+    // Handle book purchase - redirect to purchase URL
     const handlePurchaseClick = (book) => {
         if (book.book_url) {
             window.open(book.book_url, '_blank', 'noopener,noreferrer');
@@ -59,7 +59,7 @@ const BooksSection = ({ homepageData }) => {
         }
     };
     
-    // Handle thumbnail click - play promo video if available (NEW FUNCTION)
+    // Handle thumbnail click - play promo video if available
     const handleThumbnailClick = (book) => {
         if (book.promo_video_url) {
             window.open(book.promo_video_url, '_blank', 'noopener,noreferrer');
@@ -68,21 +68,27 @@ const BooksSection = ({ homepageData }) => {
     };
 
     useEffect(() => {
-    if (!homepageData) {
-      setLoading(true);
-      return;
-    }
+        if (!homepageData) {
+            setLoading(true);
+            return;
+        }
 
-    try {
-      const booksData = (homepageData.books || []).slice(0, 4);
-      setBooks(booksData);
-      setLoading(false);
-    } catch (err) {
-      console.error('Error processing books data:', err);
-      setError('Failed to load books.');
-      setLoading(false);
-    }
-  }, [homepageData]);
+        try {
+            // Get all books and sort in descending order (newest first)
+            const booksData = (homepageData.books || []).sort((a, b) => {
+                const dateA = new Date(a.added_at || a.created_at || 0);
+                const dateB = new Date(b.added_at || b.created_at || 0);
+                return dateB - dateA; // Descending order (newest first)
+            });
+            
+            setBooks(booksData);
+            setLoading(false);
+        } catch (err) {
+            console.error('Error processing books data:', err);
+            setError('Failed to load books.');
+            setLoading(false);
+        }
+    }, [homepageData]);
 
     // Loading state
     if (loading) {
@@ -107,7 +113,7 @@ const BooksSection = ({ homepageData }) => {
                         <BookOpen className="w-16 h-16 text-gray-300 mb-4" />
                         <p className="text-red-600 font-semibold mb-2">{error}</p>
                         <button
-                            onClick={fetchBooksFromFirebase}
+                            onClick={() => window.location.reload()}
                             className={`mt-4 ${getButton('primary')}`}
                         >
                             Try Again
@@ -172,7 +178,7 @@ const BooksSection = ({ homepageData }) => {
                         <div key={book.id} className="group relative">
                             {/* Card Container */}
                             <div className={`${theme.cards.elevated} rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-2`}>
-                                {/* Book Image (UPDATED with click handler and video indicator) */}
+                                {/* Book Image */}
                                 <div 
                                     className={`relative overflow-hidden h-64 ${book.promo_video_url ? 'cursor-pointer' : ''}`}
                                     onClick={() => handleThumbnailClick(book)}
@@ -195,7 +201,7 @@ const BooksSection = ({ homepageData }) => {
                                         </span>
                                     </div>
                                     
-                                    {/* Promo Video Play Indicator (NEW) */}
+                                    {/* Promo Video Play Indicator */}
                                     {book.promo_video_url && (
                                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                             <div className="bg-white/90 p-4 rounded-full shadow-2xl backdrop-blur-sm transform group-hover:scale-110 transition-transform">
@@ -214,7 +220,7 @@ const BooksSection = ({ homepageData }) => {
                                         {truncateDescription(book.description, 20)}
                                     </p>
 
-                                    {/* Purchase Book Button (UPDATED) */}
+                                    {/* Purchase Book Button */}
                                     <button
                                         onClick={() => handlePurchaseClick(book)}
                                         className={`cursor-pointer inline-flex items-center gap-2 ${theme.text.brand} font-bold text-sm group-hover:gap-3 transition-all`}

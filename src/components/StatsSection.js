@@ -23,7 +23,7 @@ const StatsSection = () => {
     },
     { 
       label: t.publishedBooks || "Published Books", 
-      value: "4", 
+      value: "5", 
       icon: BookOpen 
     }
   ];
