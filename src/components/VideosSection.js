@@ -65,7 +65,7 @@ const VideosSection = ({ homepageData }) => {
   // Extract video ID from YouTube URL
   const extractVideoId = (url) => {
     if (!url) return null;
-    const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([^"&?\/\s]{11})/);
     return match ? match[1] : null;
   };
 

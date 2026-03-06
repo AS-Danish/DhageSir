@@ -58,9 +58,8 @@ const VideosPage = () => {
   // Extract YouTube video ID from URL
   const getYouTubeVideoId = (url) => {
     if (!url) return null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
+    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([^"&?\/\s]{11})/);
+    return match ? match[1] : null;
   };
 
   // Fetch initial videos from Firebase with caching
@@ -69,7 +68,7 @@ const VideosPage = () => {
       // Check cache first
       const cachedVideos = localStorage.getItem('all_videos_cache');
       const cacheTimestamp = localStorage.getItem('all_videos_cache_timestamp');
-      
+
       // Use cache if it's less than 5 minutes old
       if (cachedVideos && cacheTimestamp) {
         const cacheAge = Date.now() - parseInt(cacheTimestamp);
@@ -84,7 +83,7 @@ const VideosPage = () => {
           return;
         }
       }
-      
+
       // No valid cache, fetch from Firebase
       await fetchAndCacheVideos();
     } catch (err) {
@@ -109,13 +108,13 @@ const VideosPage = () => {
         orderBy("published_at_iso", "desc"),
         limit(VIDEOS_PER_PAGE)
       );
-      
+
       const querySnapshot = await getDocs(videosQuery);
-      
+
       // Check if data came from cache or server
       const source = querySnapshot.metadata.fromCache ? 'cache' : 'server';
       console.log(`📦 Videos loaded from ${source}`);
-      
+
       const videosData = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -138,7 +137,7 @@ const VideosPage = () => {
       };
       localStorage.setItem('all_videos_cache', JSON.stringify(cacheData));
       localStorage.setItem('all_videos_cache_timestamp', Date.now().toString());
-      
+
       console.log('✅ Videos fetched and cached successfully');
     } catch (err) {
       console.error('Error fetching videos from Firebase:', err);
@@ -162,11 +161,11 @@ const VideosPage = () => {
       );
 
       const querySnapshot = await getDocs(videosQuery);
-      
+
       // Check if data came from cache or server
       const source = querySnapshot.metadata.fromCache ? 'cache' : 'server';
       console.log(`📦 More videos loaded from ${source}`);
-      
+
       const newVideos = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -190,13 +189,13 @@ const VideosPage = () => {
 
   const filteredVideos = videos.filter(video => {
     const matchesSearch = video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         video.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (video.channel_name && video.channel_name.toLowerCase().includes(searchQuery.toLowerCase()));
-    
+      video.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (video.channel_name && video.channel_name.toLowerCase().includes(searchQuery.toLowerCase()));
+
     const selectedTab = CHANNEL_TABS.find(tab => tab.id === selectedChannel);
-    const matchesChannel = selectedChannel === 'all' || 
-                          (selectedTab && video.channel_id === selectedTab.channel_id);
-    
+    const matchesChannel = selectedChannel === 'all' ||
+      (selectedTab && video.channel_id === selectedTab.channel_id);
+
     return matchesSearch && matchesChannel;
   });
 
@@ -219,7 +218,7 @@ const VideosPage = () => {
         <div className="flex flex-col items-center justify-center py-40">
           <Video className="w-16 h-16 text-gray-300 mb-4" />
           <p className="text-red-600 font-semibold mb-4 text-lg">{error}</p>
-          <button 
+          <button
             onClick={fetchVideosFromFirebase}
             className={getButton('primary')}
           >
@@ -265,11 +264,10 @@ const VideosPage = () => {
                 <button
                   key={tab.id}
                   onClick={() => setSelectedChannel(tab.id)}
-                  className={`px-6 py-3 rounded-xl font-bold whitespace-nowrap transition-all ${
-                    selectedChannel === tab.id
+                  className={`px-6 py-3 rounded-xl font-bold whitespace-nowrap transition-all ${selectedChannel === tab.id
                       ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-xl'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                    }`}
                 >
                   {tab.name}
                 </button>
@@ -294,7 +292,7 @@ const VideosPage = () => {
               const videoId = getYouTubeVideoId(video.video_url);
               // Use combination of video.id and index to ensure unique keys
               const uniqueKey = `${video.id}-${index}`;
-              
+
               return (
                 <div key={uniqueKey} className="group relative">
                   <div className={`${theme.cards.elevated} rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-2`}>
@@ -311,7 +309,7 @@ const VideosPage = () => {
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <img 
+                          <img
                             src={video.thumbnail_url || 'https://via.placeholder.com/640x360?text=Video'}
                             alt={video.title}
                             className="w-full h-full object-cover"
@@ -324,7 +322,7 @@ const VideosPage = () => {
                           </div>
                         </div>
                       )}
-                      
+
                       {/* Channel Badge */}
                       {video.channel_name && (
                         <div className="absolute top-4 left-4">
@@ -344,10 +342,10 @@ const VideosPage = () => {
                       <p className={`${theme.text.secondary} text-sm leading-relaxed mb-5 line-clamp-3`}>
                         {video.description || ''}
                       </p>
-                      
+
                       {/* Watch Button */}
                       {video.video_url && (
-                        <a 
+                        <a
                           href={video.video_url}
                           target="_blank"
                           rel="noopener noreferrer"
