@@ -31,7 +31,7 @@ const Footer = () => {
     { icon: Instagram, href: 'https://www.instagram.com/drsatishdhage/?hl=en', label: 'Instagram', bgColor: 'bg-pink-600' },
     { icon: Linkedin, href: 'https://www.linkedin.com/in/lt-col-dr-satish-dhage-2a9594110/', label: 'LinkedIn', bgColor: 'bg-blue-700' },
     { icon: Youtube, href: 'https://www.youtube.com/@drsatishdhage', label: 'YouTube', bgColor: 'bg-red-600' },,
-    { icon: Youtube, href: 'https://www.youtube.com/@TheMentorsForum', label: 'YouTube', bgColor: 'bg-red-600' },
+    { icon: Youtube, href: 'https://www.youtube.com/@MilitaryMentorDrSatish', label: 'YouTube', bgColor: 'bg-red-600' },
   ];
 
   return (

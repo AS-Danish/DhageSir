@@ -354,7 +354,7 @@ const VideosSection = ({ homepageData }) => {
                 </a>
 
                 <a
-                  href="https://www.youtube.com/@TheMentorsForum"
+                  href="https://www.youtube.com/@MilitaryMentorDrSatish"
                   target="_blank"
                   rel="noopener noreferrer"
                   className={`inline-flex items-center justify-center gap-3 ${getButton('outline')} group`}

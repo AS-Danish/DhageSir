@@ -140,7 +140,7 @@ const ContactSection = () => {
         {
             name: t.youtube1,
             icon: Youtube, // Added Icon
-            url: "https://www.youtube.com/@TheMentorsForum",
+            url: "https://www.youtube.com/@MilitaryMentorDrSatish",
             bgColor: "bg-gradient-to-br from-red-600 to-red-700",
             hoverColor: "hover:from-red-700 hover:to-red-800",
         },
