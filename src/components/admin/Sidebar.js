@@ -311,7 +311,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, collapsed, setCol
             {/* Logo - Hidden when collapsed */}
             <div className={`transition-all duration-300 ${collapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
               <h1 className="text-xl font-black whitespace-nowrap">
-                Defense <span className="bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">Admin</span>
+                <span className="text-black">Defence</span> <span className="bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">Admin</span>
               </h1>
             </div>
             

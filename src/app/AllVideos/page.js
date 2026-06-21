@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Video, Search, Youtube, Loader, Play, ChevronDown } from 'lucide-react';
 import { db } from '../../firebase/firebaseConfig';
-import { collection, getDocs, query, orderBy, limit, startAfter, enableIndexedDbPersistence } from 'firebase/firestore';
+import { useAppStore } from '@/store/useAppStore';
 
 // Theme configuration
 const theme = {
@@ -62,134 +62,37 @@ const VideosPage = () => {
     return match ? match[1] : null;
   };
 
-  // Fetch initial videos from Firebase with caching
-  const fetchVideosFromFirebase = async () => {
-    try {
-      // Check cache first
-      const cachedVideos = localStorage.getItem('all_videos_cache');
-      const cacheTimestamp = localStorage.getItem('all_videos_cache_timestamp');
-
-      // Use cache if it's less than 5 minutes old
-      if (cachedVideos && cacheTimestamp) {
-        const cacheAge = Date.now() - parseInt(cacheTimestamp);
-        if (cacheAge < 5 * 60 * 1000) { // 5 minutes
-          console.log('Loading videos from cache');
-          const cachedData = JSON.parse(cachedVideos);
-          setVideos(cachedData.videos);
-          setTotalCount(cachedData.totalCount);
-          setLastDoc(cachedData.lastDoc);
-          setHasMore(cachedData.hasMore);
-          setLoading(false);
-          return;
-        }
-      }
-
-      // No valid cache, fetch from Firebase
-      await fetchAndCacheVideos();
-    } catch (err) {
-      console.error('Error loading videos:', err);
-      setError('Failed to load videos. Please try again later.');
-      setLoading(false);
-    }
-  };
-
-  // Fetch and cache videos from Firebase
-  const fetchAndCacheVideos = async () => {
-    try {
-      // Get total count first (with persistence, this will use cache when offline)
-      const countSnapshot = await getDocs(collection(db, "videos"));
-      const total = countSnapshot.size;
-      setTotalCount(total);
-
-      // Query videos with pagination - sorting by published_at_iso for actual video date
-      // Using "desc" to show LATEST videos first (newest to oldest)
-      const videosQuery = query(
-        collection(db, "videos"),
-        orderBy("published_at_iso", "desc"),
-        limit(VIDEOS_PER_PAGE)
-      );
-
-      const querySnapshot = await getDocs(videosQuery);
-
-      // Check if data came from cache or server
-      const source = querySnapshot.metadata.fromCache ? 'cache' : 'server';
-      console.log(`📦 Videos loaded from ${source}`);
-
-      const videosData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
-
-      // Update state
-      setVideos(videosData);
-      setLastDoc(lastVisible);
-      setHasMore(videosData.length === VIDEOS_PER_PAGE && videosData.length < total);
-      setLoading(false);
-
-      // Also cache in localStorage as backup
-      const cacheData = {
-        videos: videosData,
-        totalCount: total,
-        hasMore: videosData.length === VIDEOS_PER_PAGE && videosData.length < total,
-        lastDoc: lastVisible ? lastVisible.id : null
-      };
-      localStorage.setItem('all_videos_cache', JSON.stringify(cacheData));
-      localStorage.setItem('all_videos_cache_timestamp', Date.now().toString());
-
-      console.log('✅ Videos fetched and cached successfully');
-    } catch (err) {
-      console.error('Error fetching videos from Firebase:', err);
-      setError('Failed to load videos from database.');
-      setLoading(false);
-    }
-  };
-
-  // Load more videos
-  const loadMoreVideos = async () => {
-    if (!hasMore || loadingMore || !lastDoc) return;
-
-    try {
-      setLoadingMore(true);
-
-      const videosQuery = query(
-        collection(db, "videos"),
-        orderBy("published_at_iso", "desc"),
-        startAfter(lastDoc),
-        limit(VIDEOS_PER_PAGE)
-      );
-
-      const querySnapshot = await getDocs(videosQuery);
-
-      // Check if data came from cache or server
-      const source = querySnapshot.metadata.fromCache ? 'cache' : 'server';
-      console.log(`📦 More videos loaded from ${source}`);
-
-      const newVideos = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
-
-      setVideos(prev => [...prev, ...newVideos]);
-      setLastDoc(lastVisible);
-      setHasMore(newVideos.length === VIDEOS_PER_PAGE && (videos.length + newVideos.length) < totalCount);
-    } catch (err) {
-      console.error('Error loading more videos:', err);
-    } finally {
-      setLoadingMore(false);
-    }
-  };
+  const { videos: storeVideos, loading: storeLoading, fetchCollection } = useAppStore();
 
   useEffect(() => {
-    fetchVideosFromFirebase();
-  }, []);
+    fetchCollection('videos', 'videos');
+  }, [fetchCollection]);
 
-  const filteredVideos = videos.filter(video => {
+  useEffect(() => {
+    if (!storeLoading && storeVideos.length > 0) {
+      setVideos(storeVideos.slice(0, VIDEOS_PER_PAGE));
+      setTotalCount(storeVideos.length);
+      setLoading(false);
+      setHasMore(storeVideos.length > VIDEOS_PER_PAGE);
+    } else if (!storeLoading && storeVideos.length === 0) {
+      setLoading(false);
+      setHasMore(false);
+    }
+  }, [storeVideos, storeLoading]);
+
+  const loadMoreVideos = () => {
+    if (!hasMore || loadingMore) return;
+    setLoadingMore(true);
+    const currentLength = videos.length;
+    const nextBatch = storeVideos.slice(currentLength, currentLength + VIDEOS_PER_PAGE);
+    setVideos(prev => [...prev, ...nextBatch]);
+    setHasMore(currentLength + nextBatch.length < storeVideos.length);
+    setLoadingMore(false);
+  };
+
+  const filteredVideos = storeVideos.filter(video => {
     const matchesSearch = video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      video.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      video.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (video.channel_name && video.channel_name.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const selectedTab = CHANNEL_TABS.find(tab => tab.id === selectedChannel);
@@ -219,7 +122,7 @@ const VideosPage = () => {
           <Video className="w-16 h-16 text-gray-300 mb-4" />
           <p className="text-red-600 font-semibold mb-4 text-lg">{error}</p>
           <button
-            onClick={fetchVideosFromFirebase}
+            onClick={() => fetchCollection('videos', 'videos', true)}
             className={getButton('primary')}
           >
             Try Again

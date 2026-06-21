@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Search, Loader, ChevronDown, Download, File } from 'lucide-react';
 import { db } from '../../firebase/firebaseConfig';
-import { collection, getDocs, query, orderBy, limit, startAfter } from 'firebase/firestore';
+import { useAppStore } from '@/store/useAppStore';
 
 // Theme configuration
 const theme = {
@@ -78,132 +78,35 @@ const AllStudyMaterialsPage = () => {
     return 'Document';
   };
 
-  // Fetch initial materials from Firebase with caching
-  const fetchMaterialsFromFirebase = async () => {
-    try {
-      // Check localStorage cache first (5-minute TTL)
-      const cachedMaterials = localStorage.getItem('all_materials_cache');
-      const cacheTimestamp = localStorage.getItem('all_materials_cache_timestamp');
-
-      // Use cache if it's less than 5 minutes old
-      if (cachedMaterials && cacheTimestamp) {
-        const cacheAge = Date.now() - parseInt(cacheTimestamp);
-        if (cacheAge < 5 * 60 * 1000) { // 5 minutes
-          console.log('📦 Loading materials from localStorage cache');
-          const cachedData = JSON.parse(cachedMaterials);
-          setMaterials(cachedData.materials);
-          setTotalCount(cachedData.totalCount);
-          setLastDoc(cachedData.lastDoc);
-          setHasMore(cachedData.hasMore);
-          setLoading(false);
-          return;
-        }
-      }
-
-      // No valid cache, fetch from Firebase
-      await fetchAndCacheMaterials();
-    } catch (err) {
-      console.error('Error loading materials:', err);
-      setError('Failed to load study materials. Please try again later.');
-      setLoading(false);
-    }
-  };
-
-  // Fetch and cache materials from Firebase
-  const fetchAndCacheMaterials = async () => {
-    try {
-      // Get total count (Firebase will use IndexedDB cache when available)
-      const countSnapshot = await getDocs(collection(db, "study_materials"));
-      const total = countSnapshot.size;
-      setTotalCount(total);
-
-      // Query materials with pagination
-      const materialsQuery = query(
-        collection(db, "study_materials"),
-        orderBy("created_at", "desc"),
-        limit(MATERIALS_PER_PAGE)
-      );
-
-      const querySnapshot = await getDocs(materialsQuery);
-
-      // Check if data came from Firebase cache or server
-      const source = querySnapshot.metadata.fromCache ? 'cache' : 'server';
-      console.log(`📦 Materials loaded from ${source}`);
-
-      const materialsData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
-
-      // Update state
-      setMaterials(materialsData);
-      setLastDoc(lastVisible);
-      setHasMore(materialsData.length === MATERIALS_PER_PAGE && materialsData.length < total);
-      setLoading(false);
-
-      // Cache in localStorage as backup
-      const cacheData = {
-        materials: materialsData,
-        totalCount: total,
-        hasMore: materialsData.length === MATERIALS_PER_PAGE && materialsData.length < total,
-        lastDoc: lastVisible ? lastVisible.id : null
-      };
-      localStorage.setItem('all_materials_cache', JSON.stringify(cacheData));
-      localStorage.setItem('all_materials_cache_timestamp', Date.now().toString());
-
-      console.log('✅ Materials fetched and cached successfully');
-    } catch (err) {
-      console.error('Error fetching materials from Firebase:', err);
-      setError('Failed to load study materials from database.');
-      setLoading(false);
-    }
-  };
-
-  // Load more materials (pagination)
-  const loadMoreMaterials = async () => {
-    if (!hasMore || loadingMore || !lastDoc) return;
-
-    try {
-      setLoadingMore(true);
-
-      const materialsQuery = query(
-        collection(db, "study_materials"),
-        orderBy("created_at", "desc"),
-        startAfter(lastDoc),
-        limit(MATERIALS_PER_PAGE)
-      );
-
-      const querySnapshot = await getDocs(materialsQuery);
-
-      // Check if data came from cache or server
-      const source = querySnapshot.metadata.fromCache ? 'cache' : 'server';
-      console.log(`📦 More materials loaded from ${source}`);
-
-      const newMaterials = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
-
-      setMaterials(prev => [...prev, ...newMaterials]);
-      setLastDoc(lastVisible);
-      setHasMore(newMaterials.length === MATERIALS_PER_PAGE && (materials.length + newMaterials.length) < totalCount);
-    } catch (err) {
-      console.error('Error loading more materials:', err);
-    } finally {
-      setLoadingMore(false);
-    }
-  };
+  const { studyMaterials: storeMaterials, loading: storeLoading, fetchCollection } = useAppStore();
 
   useEffect(() => {
-    fetchMaterialsFromFirebase();
-  }, []);
+    fetchCollection('study_materials', 'studyMaterials');
+  }, [fetchCollection]);
 
-  // Filter materials based on search
-  const filteredMaterials = materials.filter(material => {
+  useEffect(() => {
+    if (!storeLoading && storeMaterials.length > 0) {
+      setMaterials(storeMaterials.slice(0, MATERIALS_PER_PAGE));
+      setTotalCount(storeMaterials.length);
+      setLoading(false);
+      setHasMore(storeMaterials.length > MATERIALS_PER_PAGE);
+    } else if (!storeLoading && storeMaterials.length === 0) {
+      setLoading(false);
+      setHasMore(false);
+    }
+  }, [storeMaterials, storeLoading]);
+
+  const loadMoreMaterials = () => {
+    if (!hasMore || loadingMore) return;
+    setLoadingMore(true);
+    const currentLength = materials.length;
+    const nextBatch = storeMaterials.slice(currentLength, currentLength + MATERIALS_PER_PAGE);
+    setMaterials(prev => [...prev, ...nextBatch]);
+    setHasMore(currentLength + nextBatch.length < storeMaterials.length);
+    setLoadingMore(false);
+  };
+
+  const filteredMaterials = storeMaterials.filter(material => {
     if (!searchQuery) return true;
     const search = searchQuery.toLowerCase();
     return (
@@ -232,7 +135,7 @@ const AllStudyMaterialsPage = () => {
           <FileText className="w-16 h-16 text-gray-300 mb-4" />
           <p className="text-red-600 font-semibold mb-4 text-lg">{error}</p>
           <button
-            onClick={fetchMaterialsFromFirebase}
+            onClick={() => fetchCollection('study_materials', 'studyMaterials', true)}
             className={getButton('primary')}
           >
             Try Again

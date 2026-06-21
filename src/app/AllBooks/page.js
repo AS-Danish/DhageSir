@@ -2,8 +2,8 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { BookOpen, Search, ShoppingBag, ArrowRight, Loader, Tag } from 'lucide-react';
 import { db } from '../../firebase/firebaseConfig';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { useSearchParams } from 'next/navigation';
+import { useAppStore } from '@/store/useAppStore';
 
 // Theme configuration
 const theme = {
@@ -49,207 +49,36 @@ const BooksContent = () => {
   const [error, setError] = useState(null);
   const [totalCount, setTotalCount] = useState(0);
 
-  // Update selected category when URL changes
+  const { books: storeBooks, loading: storeLoading, fetchCollection } = useAppStore();
+
   useEffect(() => {
     if (urlCategory && urlCategory !== selectedCategory) {
       setSelectedCategory(urlCategory);
-      loadBooksForCategory(urlCategory);
     }
   }, [urlCategory]);
 
-  // Fetch ALL book categories AND counts
-  const fetchAllBookCategories = async () => {
-    try {
-      const cachedData = localStorage.getItem('all_book_categories_cache');
-      const cacheTimestamp = localStorage.getItem('all_book_categories_cache_timestamp');
+  useEffect(() => {
+    fetchCollection('books', 'books');
+  }, [fetchCollection]);
 
-      if (cachedData && cacheTimestamp) {
-        const cacheAge = Date.now() - parseInt(cacheTimestamp);
-        if (cacheAge < 5 * 60 * 1000) {
-          console.log('📦 Loading all book categories from cache');
-          const parsed = JSON.parse(cachedData);
-          setAllBookCategories(parsed.categories);
-          setCategoryCounts(parsed.counts);
-          return;
-        }
-      }
-
-      console.log('🔍 Fetching all book categories from Firebase...');
-      const allBooksSnapshot = await getDocs(collection(db, "books"));
+  useEffect(() => {
+    if (!storeLoading) {
+      setBooks(storeBooks);
+      setTotalCount(storeBooks.length);
       
       const categoryCountMap = {};
-      allBooksSnapshot.docs.forEach(doc => {
-        const category = doc.data().book_category;
+      storeBooks.forEach(doc => {
+        const category = doc.book_category;
         if (category && category.trim()) {
-          const trimmedCategory = category.trim();
-          categoryCountMap[trimmedCategory] = (categoryCountMap[trimmedCategory] || 0) + 1;
+          const trimmed = category.trim();
+          categoryCountMap[trimmed] = (categoryCountMap[trimmed] || 0) + 1;
         }
       });
-
-      const categoriesArray = Object.keys(categoryCountMap);
-      setAllBookCategories(categoriesArray);
+      setAllBookCategories(Object.keys(categoryCountMap));
       setCategoryCounts(categoryCountMap);
-
-      const cacheData = {
-        categories: categoriesArray,
-        counts: categoryCountMap
-      };
-      localStorage.setItem('all_book_categories_cache', JSON.stringify(cacheData));
-      localStorage.setItem('all_book_categories_cache_timestamp', Date.now().toString());
-
-      console.log('✅ Found book categories with counts:', categoryCountMap);
-    } catch (err) {
-      console.error('Error fetching all book categories:', err);
-    }
-  };
-
-  // Fetch books from Firebase with caching
-  const fetchBooksFromFirebase = async () => {
-    try {
-      const cachedBooks = localStorage.getItem('all_books_cache');
-      const cacheTimestamp = localStorage.getItem('all_books_cache_timestamp');
-      
-      if (cachedBooks && cacheTimestamp) {
-        const cacheAge = Date.now() - parseInt(cacheTimestamp);
-        if (cacheAge < 5 * 60 * 1000) {
-          console.log('📦 Loading books from cache');
-          const cachedData = JSON.parse(cachedBooks);
-          setBooks(cachedData);
-          setTotalCount(cachedData.length);
-          setLoading(false);
-          return;
-        }
-      }
-      
-      await fetchAndCacheBooks();
-    } catch (err) {
-      console.error('Error loading books:', err);
-      setError('Failed to load books. Please try again later.');
       setLoading(false);
     }
-  };
-
-  // Fetch and cache books from Firebase
-  const fetchAndCacheBooks = async () => {
-    try {
-      const booksQuery = query(
-        collection(db, "books"),
-        orderBy("created_at", "desc")
-      );
-      
-      const querySnapshot = await getDocs(booksQuery);
-      const booksData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      setBooks(booksData);
-      setTotalCount(booksData.length);
-      setLoading(false);
-
-      localStorage.setItem('all_books_cache', JSON.stringify(booksData));
-      localStorage.setItem('all_books_cache_timestamp', Date.now().toString());
-      
-      console.log('✅ Books fetched and cached successfully');
-    } catch (err) {
-      console.error('Error fetching books from Firebase:', err);
-      setError('Failed to load books from database.');
-      setLoading(false);
-    }
-  };
-
-  // Load books for a specific category
-  const loadBooksForCategory = async (categoryName) => {
-    if (categoryName === 'all') {
-      if (books.length === 0) {
-        await fetchBooksFromFirebase();
-      }
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      // Special handling for Military - fetch specific books by title
-      if (categoryName.trim().toLowerCase() === 'military') {
-        console.log(`🔍 Fetching specific military books by title...`);
-        const booksQuery = query(
-          collection(db, "books"),
-          orderBy("created_at", "desc")
-        );
-
-        const querySnapshot = await getDocs(booksQuery);
-        
-        const allowedTitles = [
-          'gkp disaster management in india for upsc',
-          "india's dual defence book"
-        ];
-        
-        const militaryBooks = querySnapshot.docs
-          .map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }))
-          .filter(book => 
-            book.title && allowedTitles.some(allowedTitle => 
-              book.title.toLowerCase().trim() === allowedTitle.toLowerCase()
-            )
-          );
-
-        setBooks(militaryBooks);
-        setLoading(false);
-        console.log(`✅ Loaded ${militaryBooks.length} military books`);
-        return;
-      }
-
-      console.log(`🔍 Fetching books for category: ${categoryName}`);
-      const booksQuery = query(
-        collection(db, "books"),
-        orderBy("created_at", "desc")
-      );
-
-      const querySnapshot = await getDocs(booksQuery);
-      
-      const categoryBooks = querySnapshot.docs
-        .map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }))
-        .filter(book => 
-          book.book_category && 
-          book.book_category.trim() === categoryName.trim()
-        );
-
-      setBooks(categoryBooks);
-      setLoading(false);
-
-      console.log(`✅ Loaded ${categoryBooks.length} books for ${categoryName}`);
-    } catch (err) {
-      console.error('Error loading category books:', err);
-      setError('Failed to load category books.');
-      setLoading(false);
-    }
-  };
-
-  // Modified useEffect to reset when switching categories
-  useEffect(() => {
-    if (selectedCategory !== 'all') {
-      loadBooksForCategory(selectedCategory);
-    } else {
-      fetchBooksFromFirebase();
-    }
-  }, [selectedCategory]);
-
-  useEffect(() => {
-    const loadData = async () => {
-      await Promise.all([
-        fetchBooksFromFirebase(),
-        fetchAllBookCategories()
-      ]);
-    };
-
-    loadData();
-  }, []);
+  }, [storeBooks, storeLoading]);
 
   // Handle book purchase click
   const handlePurchaseClick = (book) => {
@@ -279,9 +108,16 @@ const BooksContent = () => {
       book.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       book.description?.toLowerCase().includes(searchQuery.toLowerCase());
     
-    // For military, books are already filtered by title, just apply search
+    // For military, filter by title, apply search
     if (selectedCategory.trim().toLowerCase() === 'military') {
-      return matchesSearch;
+      const allowedTitles = [
+        'gkp disaster management in india for upsc',
+        "india's dual defence book"
+      ];
+      const isMilitaryBook = book.title && allowedTitles.some(allowedTitle => 
+        book.title.toLowerCase().trim() === allowedTitle.toLowerCase()
+      );
+      return matchesSearch && isMilitaryBook;
     }
 
     const matchesCategory = selectedCategory === 'all' ||

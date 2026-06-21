@@ -1,19 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { Podcast, Search, Youtube, Loader, Play, ChevronDown } from 'lucide-react';
-import { db } from '../../firebase/firebaseConfig';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-
-// In fetchAndCachePodcasts function:
-const podcastsQuery = query(
-    collection(db, "podcasts"),
-    orderBy("created_at", "desc")
-);
-const querySnapshot = await getDocs(podcastsQuery);
-const podcastsData = querySnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-}));
+import { useAppStore } from '@/store/useAppStore';
 
 // Theme configuration
 const theme = {
@@ -57,130 +45,32 @@ const PodcastsPage = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
 
-    // Mock data - Replace with your Firebase collection
-    const mockPodcasts = [
-        {
-            id: '1',
-            title: "'अमृतधारा' डॉ. सतीश ढगे यांचे 'शिक्षण' या विषयावरील विचार",
-            thumbnail_url: "https://i.ytimg.com/vi/ZiRrITKBOLI/hqdefault.jpg",
-            video_id: "ZiRrITKBOLI",
-            youtube_url: "https://www.youtube.com/watch?v=ZiRrITKBOLI",
-            platform: "youtube",
-            created_at: "2025-12-03T18:00:33.094Z"
-        },
-        // Add more mock podcasts as needed
-    ];
+    const { podcasts: storePodcasts, loading: storeLoading, fetchCollection } = useAppStore();
 
-    // Extract YouTube video ID from URL
-    const getYouTubeVideoId = (url) => {
-        if (!url) return null;
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-        const match = url.match(regExp);
-        return (match && match[2].length === 11) ? match[2] : null;
-    };
+    useEffect(() => {
+        fetchCollection('podcasts', 'podcasts');
+    }, [fetchCollection]);
 
-    // Fetch podcasts with caching
-    const fetchPodcasts = async () => {
-        try {
-            // Check cache first
-            const cachedPodcasts = localStorage.getItem('podcasts_cache');
-            const cacheTimestamp = localStorage.getItem('podcasts_cache_timestamp');
-
-            // Use cache if it's less than 5 minutes old
-            if (cachedPodcasts && cacheTimestamp) {
-                const cacheAge = Date.now() - parseInt(cacheTimestamp);
-                if (cacheAge < 5 * 60 * 1000) { // 5 minutes
-                    console.log('Loading podcasts from cache');
-                    const cachedData = JSON.parse(cachedPodcasts);
-                    setPodcasts(cachedData.podcasts);
-                    setTotalCount(cachedData.totalCount);
-                    setLoading(false);
-                    return;
-                }
-            }
-
-            // No valid cache, fetch from Firebase
-            await fetchAndCachePodcasts();
-        } catch (err) {
-            console.error('Error loading podcasts:', err);
-            setError('Failed to load podcasts. Please try again later.');
+    useEffect(() => {
+        if (!storeLoading) {
+            setPodcasts(storePodcasts);
+            setTotalCount(storePodcasts.length);
             setLoading(false);
         }
-    };
+    }, [storePodcasts, storeLoading]);
 
-    // Fetch and cache podcasts from Firebase
-    const fetchAndCachePodcasts = async () => {
-        try {
-            // TODO: Replace with actual Firebase query
-            // Example:
-            // const db = getFirestore();
-            // const podcastsQuery = query(
-            //   collection(db, "podcasts"),
-            //   orderBy("created_at", "desc")
-            // );
-            // const querySnapshot = await getDocs(podcastsQuery);
-            // const podcastsData = querySnapshot.docs.map(doc => ({
-            //   id: doc.id,
-            //   ...doc.data()
-            // }));
-
-            const podcastsQuery = query(
-                collection(db, "podcasts"),
-                orderBy("created_at", "desc")
-            );
-            const querySnapshot = await getDocs(podcastsQuery);
-            const podcastsData = querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-
-            const total = podcastsData.length;
-
-            // Update state
-            setPodcasts(podcastsData);
-            setTotalCount(total);
-            setLoading(false);
-
-            // Cache in localStorage
-            const cacheData = {
-                podcasts: podcastsData,
-                totalCount: total
-            };
-            localStorage.setItem('podcasts_cache', JSON.stringify(cacheData));
-            localStorage.setItem('podcasts_cache_timestamp', Date.now().toString());
-
-            console.log('✅ Podcasts fetched and cached successfully');
-        } catch (err) {
-            console.error('Error fetching podcasts:', err);
-            setError('Failed to load podcasts from database.');
-            setLoading(false);
-        }
-    };
-
-    // Load more podcasts (pagination)
     const loadMorePodcasts = async () => {
         if (loadingMore) return;
-
         try {
             setLoadingMore(true);
-
-            // Simulate loading delay
             await new Promise(resolve => setTimeout(resolve, 500));
-
-            // TODO: Implement actual pagination with Firebase
-            // For now, just increment page
             setCurrentPage(prev => prev + 1);
-
         } catch (err) {
             console.error('Error loading more podcasts:', err);
         } finally {
             setLoadingMore(false);
         }
     };
-
-    useEffect(() => {
-        fetchPodcasts();
-    }, []);
 
     // Filter podcasts based on search
     const filteredPodcasts = podcasts.filter(podcast => {
@@ -212,7 +102,7 @@ const PodcastsPage = () => {
                     <Podcast className="w-16 h-16 text-gray-300 mb-4" />
                     <p className="text-red-600 font-semibold mb-4 text-lg">{error}</p>
                     <button
-                        onClick={fetchPodcasts}
+                        onClick={() => fetchCollection('podcasts', 'podcasts', true)}
                         className={getButton('primary')}
                     >
                         Try Again
@@ -266,6 +156,12 @@ const PodcastsPage = () => {
 
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {paginatedPodcasts.map((podcast, index) => {
+                            const getYouTubeVideoId = (url) => {
+                                if (!url) return null;
+                                const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+                                const match = url.match(regExp);
+                                return (match && match[2].length === 11) ? match[2] : null;
+                            };
                             const videoId = podcast.video_id || getYouTubeVideoId(podcast.youtube_url);
                             const uniqueKey = `${podcast.id}-${index}`;
 

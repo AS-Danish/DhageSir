@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Image, Search, Loader, ChevronDown, ZoomIn, X } from 'lucide-react';
 import { db } from '../../firebase/firebaseConfig';
-import { collection, getDocs, query, orderBy, limit, startAfter } from 'firebase/firestore';
+import { useAppStore } from '@/store/useAppStore';
 
 // Theme configuration
 const theme = {
@@ -43,132 +43,35 @@ const AllImagesPage = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [viewingImage, setViewingImage] = useState(null);
 
-  // Fetch initial images from Firebase with caching
-  const fetchImagesFromFirebase = async () => {
-    try {
-      // Check localStorage cache first (5-minute TTL)
-      const cachedImages = localStorage.getItem('all_images_cache');
-      const cacheTimestamp = localStorage.getItem('all_images_cache_timestamp');
-      
-      // Use cache if it's less than 5 minutes old
-      if (cachedImages && cacheTimestamp) {
-        const cacheAge = Date.now() - parseInt(cacheTimestamp);
-        if (cacheAge < 5 * 60 * 1000) { // 5 minutes
-          console.log('📦 Loading images from localStorage cache');
-          const cachedData = JSON.parse(cachedImages);
-          setImages(cachedData.images);
-          setTotalCount(cachedData.totalCount);
-          setLastDoc(cachedData.lastDoc);
-          setHasMore(cachedData.hasMore);
-          setLoading(false);
-          return;
-        }
-      }
-      
-      // No valid cache, fetch from Firebase
-      await fetchAndCacheImages();
-    } catch (err) {
-      console.error('Error loading images:', err);
-      setError('Failed to load images. Please try again later.');
-      setLoading(false);
-    }
-  };
-
-  // Fetch and cache images from Firebase
-  const fetchAndCacheImages = async () => {
-    try {
-      // Get total count (Firebase will use IndexedDB cache when available)
-      const countSnapshot = await getDocs(collection(db, "gallery"));
-      const total = countSnapshot.size;
-      setTotalCount(total);
-
-      // Query images with pagination
-      const imagesQuery = query(
-        collection(db, "gallery"),
-        orderBy("created_at", "desc"),
-        limit(IMAGES_PER_PAGE)
-      );
-      
-      const querySnapshot = await getDocs(imagesQuery);
-      
-      // Check if data came from Firebase cache or server
-      const source = querySnapshot.metadata.fromCache ? 'cache' : 'server';
-      console.log(`📦 Images loaded from ${source}`);
-      
-      const imagesData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
-
-      // Update state
-      setImages(imagesData);
-      setLastDoc(lastVisible);
-      setHasMore(imagesData.length === IMAGES_PER_PAGE && imagesData.length < total);
-      setLoading(false);
-
-      // Cache in localStorage as backup
-      const cacheData = {
-        images: imagesData,
-        totalCount: total,
-        hasMore: imagesData.length === IMAGES_PER_PAGE && imagesData.length < total,
-        lastDoc: lastVisible ? lastVisible.id : null
-      };
-      localStorage.setItem('all_images_cache', JSON.stringify(cacheData));
-      localStorage.setItem('all_images_cache_timestamp', Date.now().toString());
-      
-      console.log('✅ Images fetched and cached successfully');
-    } catch (err) {
-      console.error('Error fetching images from Firebase:', err);
-      setError('Failed to load images from database.');
-      setLoading(false);
-    }
-  };
-
-  // Load more images (pagination)
-  const loadMoreImages = async () => {
-    if (!hasMore || loadingMore || !lastDoc) return;
-
-    try {
-      setLoadingMore(true);
-
-      const imagesQuery = query(
-        collection(db, "gallery"),
-        orderBy("created_at", "desc"),
-        startAfter(lastDoc),
-        limit(IMAGES_PER_PAGE)
-      );
-
-      const querySnapshot = await getDocs(imagesQuery);
-      
-      // Check if data came from cache or server
-      const source = querySnapshot.metadata.fromCache ? 'cache' : 'server';
-      console.log(`📦 More images loaded from ${source}`);
-      
-      const newImages = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
-
-      setImages(prev => [...prev, ...newImages]);
-      setLastDoc(lastVisible);
-      setHasMore(newImages.length === IMAGES_PER_PAGE && (images.length + newImages.length) < totalCount);
-    } catch (err) {
-      console.error('Error loading more images:', err);
-    } finally {
-      setLoadingMore(false);
-    }
-  };
+  const { gallery: storeImages, loading: storeLoading, fetchCollection } = useAppStore();
 
   useEffect(() => {
-    fetchImagesFromFirebase();
-  }, []);
+    fetchCollection('gallery', 'gallery');
+  }, [fetchCollection]);
 
-  // Filter images based on search
-  const filteredImages = images.filter(image => {
+  useEffect(() => {
+    if (!storeLoading && storeImages.length > 0) {
+      setImages(storeImages.slice(0, IMAGES_PER_PAGE));
+      setTotalCount(storeImages.length);
+      setLoading(false);
+      setHasMore(storeImages.length > IMAGES_PER_PAGE);
+    } else if (!storeLoading && storeImages.length === 0) {
+      setLoading(false);
+      setHasMore(false);
+    }
+  }, [storeImages, storeLoading]);
+
+  const loadMoreImages = () => {
+    if (!hasMore || loadingMore) return;
+    setLoadingMore(true);
+    const currentLength = images.length;
+    const nextBatch = storeImages.slice(currentLength, currentLength + IMAGES_PER_PAGE);
+    setImages(prev => [...prev, ...nextBatch]);
+    setHasMore(currentLength + nextBatch.length < storeImages.length);
+    setLoadingMore(false);
+  };
+
+  const filteredImages = storeImages.filter(image => {
     if (!searchQuery) return true;
     const search = searchQuery.toLowerCase();
     return image.title?.toLowerCase().includes(search);

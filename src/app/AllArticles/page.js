@@ -2,8 +2,8 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { FileText, Search, Loader, ChevronDown, ExternalLink, Tag, Calendar, X } from 'lucide-react';
 import { db } from '../../firebase/firebaseConfig';
-import { collection, getDocs, query, orderBy, limit, startAfter } from 'firebase/firestore';
 import { useSearchParams } from 'next/navigation';
+import { useAppStore } from '@/store/useAppStore';
 
 // Theme configuration
 const theme = {
@@ -53,286 +53,52 @@ const ArticlesContent = () => {
     const [allArticleCategories, setAllArticleCategories] = useState([]);
     const [categoryCounts, setCategoryCounts] = useState({});
 
-    // Update selected category when URL changes
+    const { articles: storeArticles, loading: storeLoading, fetchCollection } = useAppStore();
+
     useEffect(() => {
         if (urlCategory && urlCategory !== selectedCategory) {
             setSelectedCategory(urlCategory);
-            // Load articles for this category if not loaded
-            loadArticlesForCategory(urlCategory);
         }
     }, [urlCategory]);
 
-    // Fetch ALL article categories AND counts (not just loaded articles)
-    const fetchAllArticleCategories = async () => {
-        try {
-            // Check cache first
-            const cachedData = localStorage.getItem('all_article_categories_cache');
-            const cacheTimestamp = localStorage.getItem('all_article_categories_cache_timestamp');
+    useEffect(() => {
+        fetchCollection('articles', 'articles');
+    }, [fetchCollection]);
 
-            if (cachedData && cacheTimestamp) {
-                const cacheAge = Date.now() - parseInt(cacheTimestamp);
-                if (cacheAge < 5 * 60 * 1000) {
-                    console.log('📦 Loading all article categories from cache');
-                    const parsed = JSON.parse(cachedData);
-                    setAllArticleCategories(parsed.categories);
-                    setCategoryCounts(parsed.counts);
-                    return;
-                }
-            }
-
-            // Fetch ALL articles to get all categories and counts
-            console.log('🔍 Fetching all article categories from Firebase...');
-            const allArticlesSnapshot = await getDocs(collection(db, "articles"));
+    useEffect(() => {
+        if (!storeLoading && storeArticles.length > 0) {
+            setArticles(storeArticles.slice(0, ARTICLES_PER_PAGE));
+            setTotalCount(storeArticles.length);
             
             const categoryCountMap = {};
-            allArticlesSnapshot.docs.forEach(doc => {
-                const category = doc.data().article_category;
+            storeArticles.forEach(doc => {
+                const category = doc.article_category;
                 if (category && category.trim()) {
-                    const trimmedCategory = category.trim();
-                    categoryCountMap[trimmedCategory] = (categoryCountMap[trimmedCategory] || 0) + 1;
+                    const trimmed = category.trim();
+                    categoryCountMap[trimmed] = (categoryCountMap[trimmed] || 0) + 1;
                 }
             });
-
-            const categoriesArray = Object.keys(categoryCountMap);
-            setAllArticleCategories(categoriesArray);
+            setAllArticleCategories(Object.keys(categoryCountMap));
             setCategoryCounts(categoryCountMap);
-
-            // Cache the categories and counts
-            const cacheData = {
-                categories: categoriesArray,
-                counts: categoryCountMap
-            };
-            localStorage.setItem('all_article_categories_cache', JSON.stringify(cacheData));
-            localStorage.setItem('all_article_categories_cache_timestamp', Date.now().toString());
-
-            console.log('✅ Found categories with counts:', categoryCountMap);
-        } catch (err) {
-            console.error('Error fetching all article categories:', err);
-        }
-    };
-
-    // Fetch initial articles from Firebase with caching
-    const fetchArticlesFromFirebase = async () => {
-        try {
-            // Check localStorage cache first (5-minute TTL)
-            const cachedArticles = localStorage.getItem('all_articles_cache');
-            const cacheTimestamp = localStorage.getItem('all_articles_cache_timestamp');
-
-            // Use cache if it's less than 5 minutes old
-            if (cachedArticles && cacheTimestamp) {
-                const cacheAge = Date.now() - parseInt(cacheTimestamp);
-                if (cacheAge < 5 * 60 * 1000) {
-                    console.log('📦 Loading articles from localStorage cache');
-                    const cachedData = JSON.parse(cachedArticles);
-                    setArticles(cachedData.articles);
-                    setTotalCount(cachedData.totalCount);
-                    setLastDoc(null);
-                    setHasMore(true); 
-                    setLoading(false);
-                    return;
-                }
-            }
-
-            await fetchAndCacheArticles();
-        } catch (err) {
-            console.error('Error loading articles:', err);
-            setError('Failed to load articles. Please try again later.');
             setLoading(false);
-        }
-    };
-
-    // Fetch and cache articles from Firebase
-    const fetchAndCacheArticles = async () => {
-        try {
-            // Get total count 
-            const countSnapshot = await getDocs(collection(db, "articles"));
-            const total = countSnapshot.size;
-            setTotalCount(total);
-
-            // Query articles with pagination
-            const articlesQuery = query(
-                collection(db, "articles"),
-                orderBy("created_at", "desc"),
-                limit(ARTICLES_PER_PAGE)
-            );
-
-            const querySnapshot = await getDocs(articlesQuery);
-
-            const source = querySnapshot.metadata.fromCache ? 'cache' : 'server';
-            console.log(`📦 Articles loaded from ${source}`);
-
-            const articlesData = querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-
-            const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
-
-            setArticles(articlesData);
-            setLastDoc(lastVisible);
-            setHasMore(articlesData.length === ARTICLES_PER_PAGE && articlesData.length < total);
+            setHasMore(storeArticles.length > ARTICLES_PER_PAGE);
+        } else if (!storeLoading && storeArticles.length === 0) {
             setLoading(false);
-
-            // Cache in localStorage
-            const cacheData = {
-                articles: articlesData,
-                totalCount: total,
-                hasMore: articlesData.length === ARTICLES_PER_PAGE && articlesData.length < total,
-            };
-            localStorage.setItem('all_articles_cache', JSON.stringify(cacheData));
-            localStorage.setItem('all_articles_cache_timestamp', Date.now().toString());
-
-            console.log('✅ Articles fetched and cached successfully');
-        } catch (err) {
-            console.error('Error fetching articles from Firebase:', err);
-            setError('Failed to load articles from database.');
-            setLoading(false);
+            setHasMore(false);
         }
+    }, [storeArticles, storeLoading]);
+
+    const loadMoreArticles = () => {
+        if (!hasMore || loadingMore) return;
+        setLoadingMore(true);
+        const currentLength = articles.length;
+        const nextBatch = storeArticles.slice(currentLength, currentLength + ARTICLES_PER_PAGE);
+        setArticles(prev => [...prev, ...nextBatch]);
+        setHasMore(currentLength + nextBatch.length < storeArticles.length);
+        setLoadingMore(false);
     };
 
-    // Load categories from Firebase with caching
-    const fetchCategoriesFromFirebase = async () => {
-        try {
-            const cachedCategories = localStorage.getItem('categories_cache');
-            const cacheTimestamp = localStorage.getItem('categories_cache_timestamp');
-
-            if (cachedCategories && cacheTimestamp) {
-                const cacheAge = Date.now() - parseInt(cacheTimestamp);
-                if (cacheAge < 5 * 60 * 1000) {
-                    console.log('📦 Loading categories from localStorage cache');
-                    setCategories(JSON.parse(cachedCategories));
-                    return;
-                }
-            }
-
-            const categoriesQuery = query(
-                collection(db, "categories"),
-                orderBy("created_at", "desc")
-            );
-
-            const querySnapshot = await getDocs(categoriesQuery);
-            const source = querySnapshot.metadata.fromCache ? 'cache' : 'server';
-            console.log(`📦 Categories loaded from ${source}`);
-
-            const categoriesData = querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-
-            setCategories(categoriesData);
-
-            localStorage.setItem('categories_cache', JSON.stringify(categoriesData));
-            localStorage.setItem('categories_cache_timestamp', Date.now().toString());
-        } catch (err) {
-            console.error('Error fetching categories:', err);
-        }
-    };
-
-    // Load articles for a specific category
-    const loadArticlesForCategory = async (categoryName) => {
-        if (categoryName === 'all') {
-            // For 'all', just load from cache or fetch normally
-            if (articles.length === 0) {
-                await fetchArticlesFromFirebase();
-            }
-            return;
-        }
-
-        try {
-            setLoading(true);
-
-            // Fetch ALL articles with this category
-            console.log(`🔍 Fetching articles for category: ${categoryName}`);
-            const categoryQuery = query(
-                collection(db, "articles"),
-                orderBy("created_at", "desc")
-            );
-
-            const querySnapshot = await getDocs(categoryQuery);
-            
-            const categoryArticles = querySnapshot.docs
-                .map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }))
-                .filter(article => 
-                    article.article_category && 
-                    article.article_category.trim() === categoryName.trim()
-                );
-
-            setArticles(categoryArticles);
-            setLastDoc(null);
-            setHasMore(false); // No pagination for category view
-            setLoading(false);
-
-            console.log(`✅ Loaded ${categoryArticles.length} articles for ${categoryName}`);
-        } catch (err) {
-            console.error('Error loading category articles:', err);
-            setError('Failed to load category articles.');
-            setLoading(false);
-        }
-    };
-
-    // Modified load more to reset when switching categories
-    useEffect(() => {
-        if (selectedCategory !== 'all') {
-            loadArticlesForCategory(selectedCategory);
-        } else {
-            // Reset to initial load for 'all'
-            fetchArticlesFromFirebase();
-        }
-    }, [selectedCategory]);
-
-    // Load more articles (pagination)
-    const loadMoreArticles = async () => {
-        if (!hasMore || loadingMore || !lastDoc) return;
-
-        try {
-            setLoadingMore(true);
-
-            const articlesQuery = query(
-                collection(db, "articles"),
-                orderBy("created_at", "desc"),
-                startAfter(lastDoc),
-                limit(ARTICLES_PER_PAGE)
-            );
-
-            const querySnapshot = await getDocs(articlesQuery);
-
-            const source = querySnapshot.metadata.fromCache ? 'cache' : 'server';
-            console.log(`📦 More articles loaded from ${source}`);
-
-            const newArticles = querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-
-            const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
-
-            setArticles(prev => [...prev, ...newArticles]);
-            setLastDoc(lastVisible);
-            setHasMore(newArticles.length === ARTICLES_PER_PAGE && (articles.length + newArticles.length) < totalCount);
-        } catch (err) {
-            console.error('Error loading more articles:', err);
-        } finally {
-            setLoadingMore(false);
-        }
-    };
-
-    useEffect(() => {
-        const loadData = async () => {
-            await Promise.all([
-                fetchArticlesFromFirebase(),
-                fetchCategoriesFromFirebase(),
-                fetchAllArticleCategories()
-            ]);
-        };
-
-        loadData();
-    }, []);
-
-    // Filter articles based on search and category
-    const filteredArticles = articles.filter(article => {
+    const filteredArticles = storeArticles.filter(article => {
         const matchesSearch = !searchQuery ||
             article.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             article.description?.toLowerCase().includes(searchQuery.toLowerCase());
