@@ -16,11 +16,6 @@ const ImprovedNavbar = () => {
   // Navigation structure - Easy to modify!
   const navLinks = [
     {
-      label: t.home,
-      href: "/",
-      type: "link"
-    },
-    {
       label: t.about,
       href: "/#about",
       type: "link"
@@ -63,6 +58,11 @@ const ImprovedNavbar = () => {
           label: t.studyMaterials,
           href: "/AllStudyMaterials",
           icon: "📖"
+        },
+        {
+          label: "The Mentors Forum",
+          href: "/mentors-forum",
+          icon: "🤝"
         }
       ]
     },
@@ -130,11 +130,11 @@ const ImprovedNavbar = () => {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <a href="/" className="relative group cursor-pointer block">
+            <a href="/mentors-forum" className="relative group cursor-pointer block">
               <div className={`relative w-18 h-18 rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-all duration-300 overflow-hidden`}>
                 <img
-                  src="/logo.jpeg"
-                  alt="Logo"
+                  src="/satish-dhage-logo.jpeg"
+                  alt="Dr. Satish Dhage logo"
                   className="w-full h-full object-contain"
                 />
               </div>

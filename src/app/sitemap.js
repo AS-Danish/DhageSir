@@ -3,7 +3,7 @@ export default async function sitemap() {
 
   return [
     {
-      url: `${baseUrl}`,
+      url: `${baseUrl}/mentors-forum`,
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 1.0,
